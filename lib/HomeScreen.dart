@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -47,7 +48,7 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: 20.0),
               Text(
-                'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui',
+                'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui!',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16.0),
               ),
