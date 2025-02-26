@@ -28,6 +28,9 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  
+  image_picker: ^1.0.4
+  
   flutter:
     sdk: flutter
   firebase_auth: ^5.4.2
@@ -38,7 +41,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   curved_navigation_bar: ^1.0.6
   flutter_native_splash: ^2.3.10
-  circle_nav_bar: ^2.2.0
+  circle_nav_bar: ^2.0.1
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.3
@@ -48,11 +51,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
   assets:
     - assets/
     - assets/backgrounds/
     - assets/images/
     - assets/icones/
+
+ 
+
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
