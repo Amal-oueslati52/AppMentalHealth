@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
-import 'profileScreen.dart';
-import 'homeScreen.dart';
+import 'ProfileScreen.dart';
+import 'HomeScreen.dart' as home;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -20,20 +20,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _pageController = PageController(initialPage: _tabIndex);
   }
 
-  @override
   void _navigateToScreen(int index) {
     Widget screen;
 
     switch (index) {
       case 0:
-        screen = const HomeScreen(); // Accueil
+        screen = const home.HomeScreen(); // Accueil
         break;
       case 1:
         screen = const ProfileScreen(); // Profil
         break;
 
       default:
-        screen = const HomeScreen();
+        screen = const home.HomeScreen();
     }
 
     Navigator.pushReplacement(
@@ -48,7 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: ImageIcon(AssetImage('assets/icones/image 25.png')),
-          onPressed: () {},
+          onPressed: () {
+            // Add your onPressed code here!
+          },
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -102,8 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
         inactiveIcons: const [
           Text("Home"),
           Text("Profile"),
+          Text("Chatbot"),
           Text("Auto"),
-          Text("Ressource"),
           Text("Journal"),
         ],
         color: Colors.white,

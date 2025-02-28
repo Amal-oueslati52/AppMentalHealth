@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:app/login.dart'; // Replace with the correct path to your LoginScreen file
+import 'package:app/pages/login.dart'; 
 
 class SplashScreen extends StatefulWidget {
   @override

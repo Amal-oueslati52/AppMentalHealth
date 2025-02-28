@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
+import 'login.dart';
+import 'chat_screen.dart';
 import 'HomeScreen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,9 +26,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         screen = const HomeScreen(); // Page d'accueil
         break;
       case 1:
-        screen = const ProfileScreen(); // Profil
+        screen = const ProfileScreen(); // Page de profil
         break;
-
+      case 2:
+        screen = const ChatScreen(); // Page du chatbot
+        break;
       default:
         screen = const HomeScreen();
     }
@@ -132,7 +136,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _logout() async {
     await _auth.signOut();
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => const Login()));
     }
   }
 
@@ -173,9 +178,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF8E44AD), Color(0xFF3498DB), Color(0xFF1ABC9C)],
             ),
           ),
           child: Padding(
@@ -239,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ElevatedButton(
                   onPressed: _logout,
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: const Color.fromARGB(136, 203, 93, 207),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15)),
                   child: const Text(
@@ -266,8 +271,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         inactiveIcons: const [
           Text("Home"),
           Text("Profile"),
+          Text("Chatbot"),
           Text("Auto"),
-          Text("Ressource"),
           Text("Journal"),
         ],
         color: Colors.white,

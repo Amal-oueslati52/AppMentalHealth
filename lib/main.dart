@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'splash_screen.dart';
-import 'package:firebase_core/firebase_core.dart'; //ajout de firebase
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'pages/chat_screen.dart';
+import 'package:app/pages/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,10 +12,14 @@ void main() async {
   } catch (e) {
     print("Error initializing Firebase: $e");
   }
-  runApp(MyApp());
-} //ajout de main pour firebase
+  await dotenv.load(fileName: ".env");
+  print("Environment variables loaded");
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -21,7 +27,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: SplashScreen(),
+      home: Login(),
     );
   }
 }

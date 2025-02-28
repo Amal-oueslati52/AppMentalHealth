@@ -1,4 +1,4 @@
-import 'package:app/HomeScreen.dart';
+import 'package:app/pages/HomeScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Ajout de Firestore pour gérer les données utilisateur
@@ -149,13 +149,9 @@ class _SignUpState extends State<SignUp> {
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
+                  colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF8E44AD),
-                    Color(0xFF3498DB),
-                    Color(0xFF1ABC9C),
-                  ],
                 ),
               ),
             ),
