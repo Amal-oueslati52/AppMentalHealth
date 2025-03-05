@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/pages/HomeScreen.dart';
 import 'package:app/pages/sign_up.dart';
 import 'package:app/toast/toast.dart';
@@ -20,6 +21,30 @@ class _LoginState extends State<Login> {
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfLoggedIn(); // Vérifier si l'utilisateur est déjà connecté
+  }
+
+  Future<void> _checkIfLoggedIn() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('authToken'); // Récupérer le token
+
+    if (token != null) {
+      // Rediriger vers l'écran principal si un token existe
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
+  }
+
+  Future<void> saveToken(String uid) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('authToken', uid); // Sauvegarder l'UID de l'utilisateur
+  }
 
   Future<void> _signIn() async {
     setState(() {
@@ -43,6 +68,10 @@ class _LoginState extends State<Login> {
       if (user != null) {
         if (user.emailVerified) {
           showToast(message: "Login successful!");
+
+          // Sauvegarder le token (UID de l'utilisateur)
+          await saveToken(user.uid);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -87,6 +116,10 @@ class _LoginState extends State<Login> {
 
       if (user != null) {
         showToast(message: "Login with Google successful!");
+
+        // Sauvegarder le token (UID de l'utilisateur)
+        await saveToken(user.uid);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),

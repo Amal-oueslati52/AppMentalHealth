@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
 import 'chat_screen.dart';
 import 'HomeScreen.dart';
@@ -59,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
 
   // Navigation
-
   late PageController _pageController;
 
   @override
@@ -134,10 +134,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Fonction pour déconnecter l'utilisateur
   Future<void> _logout() async {
-    await _auth.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => const Login()));
+    try {
+      // Déconnexion de Firebase
+      await _auth.signOut();
+
+      // Supprimer le token de SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('authToken');
+
+      // Vérifier que le token a été supprimé
+      String? token = prefs.getString('authToken');
+      if (token == null) {
+        print("Token supprimé avec succès !");
+      } else {
+        print("Erreur : le token n'a pas été supprimé.");
+      }
+
+      // Rediriger vers l'écran de connexion
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
+      }
+    } catch (e) {
+      print("Erreur lors de la déconnexion : $e");
     }
   }
 
@@ -242,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _logout,
+                  onPressed: _logout, // Appeler la méthode _logout
                   style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(136, 203, 93, 207),
                       padding: const EdgeInsets.symmetric(
