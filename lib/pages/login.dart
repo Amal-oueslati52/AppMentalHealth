@@ -32,8 +32,8 @@ class _LoginState extends State<Login> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('authToken'); // Récupérer le token
 
-    if (token != null) {
-      // Rediriger vers l'écran principal si un token existe
+    if (token != null && _auth.currentUser != null) {
+      // Rediriger vers l'écran principal si un token existe et que l'utilisateur est connecté
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -41,21 +41,19 @@ class _LoginState extends State<Login> {
     }
   }
 
-  Future<void> saveToken(String uid) async {
+  Future<void> saveToken(String token) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('authToken', uid); // Sauvegarder l'UID de l'utilisateur
+    await prefs.setString('authToken', token); // Sauvegarder le token
   }
 
   Future<void> _signIn() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      showToast(message: "Please enter your email and password.");
+      showToast(message: "Veuillez entrer votre email et mot de passe.");
       setState(() => _isLoading = false);
       return;
     }
@@ -67,38 +65,38 @@ class _LoginState extends State<Login> {
 
       if (user != null) {
         if (user.emailVerified) {
-          showToast(message: "Login successful!");
+          showToast(message: "Connexion réussie !");
 
-          // Sauvegarder le token (UID de l'utilisateur)
-          await saveToken(user.uid);
+          // Sauvegarder le token JWT Firebase
+          String? token = await user.getIdToken();
+          await saveToken(token!);
 
+          // Rediriger vers l'écran principal
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
         } else {
-          showToast(message: "Please verify your email before logging in.");
+          showToast(
+              message:
+                  "Veuillez vérifier votre email avant de vous connecter.");
           await _auth.signOut(); // Déconnexion de l'utilisateur
         }
       }
     } on FirebaseAuthException catch (e) {
       showToast(message: _getFirebaseErrorMessage(e.code));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        showToast(message: "Google Sign-In cancelled.");
+        showToast(message: "Connexion Google annulée.");
         setState(() => _isLoading = false);
         return;
       }
@@ -115,11 +113,13 @@ class _LoginState extends State<Login> {
       User? user = userCredential.user;
 
       if (user != null) {
-        showToast(message: "Login with Google successful!");
+        showToast(message: "Connexion Google réussie !");
 
-        // Sauvegarder le token (UID de l'utilisateur)
-        await saveToken(user.uid);
+        // Sauvegarder le token JWT Firebase
+        String? token = await user.getIdToken();
+        await saveToken(token!);
 
+        // Rediriger vers l'écran principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -128,43 +128,43 @@ class _LoginState extends State<Login> {
     } on FirebaseAuthException catch (e) {
       showToast(message: _getFirebaseErrorMessage(e.code));
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   String _getFirebaseErrorMessage(String errorCode) {
     switch (errorCode) {
       case "invalid-email":
-        return "Invalid email format.";
+        return "Format d'email invalide.";
       case "user-not-found":
-        return "No user found with this email.";
+        return "Aucun utilisateur trouvé avec cet email.";
       case "wrong-password":
-        return "Incorrect password.";
+        return "Mot de passe incorrect.";
       case "user-disabled":
-        return "This account has been disabled.";
+        return "Ce compte a été désactivé.";
       case "too-many-requests":
-        return "Too many requests. Try again later.";
+        return "Trop de tentatives. Réessayez plus tard.";
       case "operation-not-allowed":
-        return "Sign-in method is not enabled.";
+        return "Méthode de connexion non autorisée.";
       case "network-request-failed":
-        return "Network error. Check your connection.";
+        return "Erreur réseau. Vérifiez votre connexion.";
       default:
-        return "An error occurred. Please try again.";
+        return "Une erreur s'est produite. Veuillez réessayer.";
     }
   }
 
   Future<void> _resetPassword() async {
     String email = _emailController.text.trim();
     if (email.isEmpty) {
-      showToast(message: "Please enter your email to reset password.");
+      showToast(
+          message:
+              "Veuillez entrer votre email pour réinitialiser le mot de passe.");
       return;
     }
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      showToast(message: "Password reset link sent to your email.");
+      showToast(message: "Lien de réinitialisation envoyé à votre email.");
     } on FirebaseAuthException catch (e) {
       showToast(message: _getFirebaseErrorMessage(e.code));
     }
@@ -200,7 +200,7 @@ class _LoginState extends State<Login> {
               children: [
                 const SizedBox(height: 60),
                 const Text(
-                  'Login',
+                  'Connexion',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -225,7 +225,7 @@ class _LoginState extends State<Login> {
                 TextField(
                   controller: _passwordController,
                   focusNode: _passwordFocusNode,
-                  decoration: _inputDecoration('Password', Icons.lock),
+                  decoration: _inputDecoration('Mot de passe', Icons.lock),
                   obscureText: true,
                   enableSuggestions: false,
                   autocorrect: false,
@@ -245,7 +245,7 @@ class _LoginState extends State<Login> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'Login',
+                          'Connexion',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -261,7 +261,7 @@ class _LoginState extends State<Login> {
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: Image.asset('assets/icones/logoGoogle.png', height: 20),
                   label: const Text(
-                    'Sign in with Google',
+                    'Connexion avec Google',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -277,7 +277,7 @@ class _LoginState extends State<Login> {
 
                 const SizedBox(height: 20),
 
-                // Create account & Forget password
+                // Créer un compte & Mot de passe oublié
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -291,7 +291,7 @@ class _LoginState extends State<Login> {
                           );
                         },
                         child: const Text(
-                          'Create an account',
+                          'Créer un compte',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
@@ -307,7 +307,7 @@ class _LoginState extends State<Login> {
                       child: GestureDetector(
                         onTap: _resetPassword,
                         child: const Text(
-                          'Forgot password?',
+                          'Mot de passe oublié ?',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,

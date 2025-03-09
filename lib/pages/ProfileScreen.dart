@@ -2,12 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login.dart';
-import 'chat_screen.dart';
-import 'HomeScreen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,34 +16,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _tabIndex = 1;
-
-  void _navigateToScreen(int index) {
-    Widget screen;
-
-    switch (index) {
-      case 0:
-        screen = const HomeScreen(); // Page d'accueil
-        break;
-      case 1:
-        screen = const ProfileScreen(); // Page de profil
-        break;
-      case 2:
-        screen = const ChatScreen(); // Page du chatbot
-        break;
-      default:
-        screen = const HomeScreen();
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
-  }
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ImagePicker _picker = ImagePicker();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Ajoutez cette ligne
 
   User? _user;
   Map<String, dynamic>? _userData;
@@ -59,14 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   File? _imageFile;
 
-  // Navigation
-  late PageController _pageController;
-
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _pageController = PageController(initialPage: _tabIndex);
   }
 
   @override
@@ -75,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _genreController.dispose();
     _ageController.dispose();
     _objectifController.dispose();
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -107,17 +77,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // Fonction pour télécharger l'image dans Firebase Storage
+  Future<String?> _uploadImage(File imageFile) async {
+    try {
+      // Générer un nom de fichier unique
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Référence vers Firebase Storage
+      Reference storageReference =
+          FirebaseStorage.instance.ref().child('profile_images/$fileName.jpg');
+
+      // Télécharger l'image
+      UploadTask uploadTask = storageReference.putFile(imageFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+
+      // Récupérer l'URL de l'image téléchargée
+      String downloadURL = await taskSnapshot.ref.getDownloadURL();
+      return downloadURL;
+    } catch (e) {
+      print("Erreur lors du téléchargement de l'image : $e");
+      return null;
+    }
+  }
+
   // Fonction pour enregistrer les modifications
   Future<void> _saveChanges() async {
     if (_user == null) return;
     setState(() => _isLoading = true);
 
     try {
+      String? imageUrl;
+      if (_imageFile != null) {
+        // Télécharger l'image et récupérer son URL
+        imageUrl = await _uploadImage(_imageFile!);
+      }
+
+      // Mettre à jour les données du profil dans Firestore
       await _firestore.collection('users').doc(_user!.uid).update({
         'name': _nameController.text.trim(),
         'genre': _genreController.text.trim(),
         'age': _ageController.text.trim(),
         'objectif': _objectifController.text.trim(),
+        if (imageUrl != null)
+          'photoUrl': imageUrl, // Ajouter l'URL de l'image si elle existe
       });
 
       setState(() => _isEditing = false);
@@ -134,31 +136,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Fonction pour déconnecter l'utilisateur
   Future<void> _logout() async {
-    try {
-      // Déconnexion de Firebase
-      await _auth.signOut();
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Déconnexion"),
+        content: const Text("Êtes-vous sûr de vouloir vous déconnecter ?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Annuler"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Déconnexion"),
+          ),
+        ],
+      ),
+    );
 
-      // Supprimer le token de SharedPreferences
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.remove('authToken');
+    if (confirm == true) {
+      try {
+        await _auth.signOut();
+        await _googleSignIn.signOut(); // Déconnexion de Google Sign-In
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.remove('authToken'); // Supprimer le token d'authentification
 
-      // Vérifier que le token a été supprimé
-      String? token = prefs.getString('authToken');
-      if (token == null) {
-        print("Token supprimé avec succès !");
-      } else {
-        print("Erreur : le token n'a pas été supprimé.");
-      }
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Login()),
+          );
+        }
 
-      // Rediriger vers l'écran de connexion
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Login()),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Déconnexion réussie !")),
         );
+      } catch (e) {
+        print("Erreur lors de la déconnexion : $e");
       }
-    } catch (e) {
-      print("Erreur lors de la déconnexion : $e");
     }
   }
 
@@ -180,19 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: ImageIcon(AssetImage('assets/icones/image 25.png')),
-          onPressed: () {},
-        ),
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: ImageIcon(AssetImage('assets/icones/image 28.png')),
-            onPressed: () {},
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Container(
           width: double.infinity,
@@ -215,11 +217,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundImage: _imageFile != null
-                        ? FileImage(_imageFile!)
+                        ? FileImage(
+                            _imageFile!) // Afficher l'image sélectionnée
                         : (_userData?['photoUrl'] != null
-                                ? NetworkImage(_userData!['photoUrl'])
-                                : const AssetImage('assets/default_avatar.png'))
-                            as ImageProvider,
+                            ? NetworkImage(_userData![
+                                'photoUrl']) // Afficher l'image du profil
+                            : const AssetImage('assets/default_avatar.png')
+                                as ImageProvider), // Image par défaut
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -280,36 +284,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: CircleNavBar(
-        activeIcons: const [
-          Icon(Icons.home, color: Colors.deepPurple),
-          Icon(Icons.person, color: Colors.deepPurple),
-          Icon(Icons.assessment, color: Colors.deepPurple),
-          Icon(Icons.book, color: Colors.deepPurple),
-          Icon(Icons.message, color: Colors.deepPurple),
-        ],
-        inactiveIcons: const [
-          Text("Home"),
-          Text("Profile"),
-          Text("Chatbot"),
-          Text("Auto"),
-          Text("Journal"),
-        ],
-        color: Colors.white,
-        height: 60,
-        circleWidth: 60,
-        activeIndex: _tabIndex,
-        onTap: (index) => _navigateToScreen(index),
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
-        cornerRadius: const BorderRadius.only(
-          topLeft: Radius.circular(8),
-          topRight: Radius.circular(8),
-          bottomRight: Radius.circular(24),
-          bottomLeft: Radius.circular(24),
-        ),
-        shadowColor: Colors.deepPurple,
-        elevation: 10,
       ),
     );
   }

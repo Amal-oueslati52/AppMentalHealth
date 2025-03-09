@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
-import 'ProfileScreen.dart';
-import 'HomeScreen.dart' as home;
+import 'ProfileScreen.dart'; // Importez vos écrans
+import 'chat_screen.dart';
+import 'map_screen.dart'; // Importez votre écran de carte
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -14,31 +15,36 @@ class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
   late PageController _pageController;
 
+  // Liste des écrans accessibles via la barre de navigation
+  final List<Widget> _screens = [
+    const HomeContent(), // Contenu de l'écran d'accueil
+    const ProfileScreen(), // Profil
+    MapScreen(), // Carte
+    const ChatScreen(), // Chatbot
+  ];
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _tabIndex);
   }
 
-  void _navigateToScreen(int index) {
-    Widget screen;
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
-    switch (index) {
-      case 0:
-        screen = const home.HomeScreen(); // Accueil
-        break;
-      case 1:
-        screen = const ProfileScreen(); // Profil
-        break;
-
-      default:
-        screen = const home.HomeScreen();
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+  // Changement d'onglet
+  void _onTabTapped(int index) {
+    setState(() {
+      _tabIndex = index;
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   @override
@@ -46,9 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: ImageIcon(AssetImage('assets/icones/image 25.png')),
+          icon: const ImageIcon(AssetImage('assets/icones/image 25.png')),
           onPressed: () {
-            // Add your onPressed code here!
+            // Action pour le bouton de gauche
           },
         ),
         title: Row(
@@ -59,59 +65,38 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: ImageIcon(AssetImage('assets/icones/image 28.png')),
-            onPressed: () {},
+            icon: const ImageIcon(AssetImage('assets/icones/image 28.png')),
+            onPressed: () {
+              // Action pour le bouton de droite
+            },
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/image 24.png',
-                width: 100.0,
-                height: 100.0,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 20.0),
-              const Text(
-                'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16.0, color: Colors.white),
-              ),
-            ],
-          ),
-        ),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() => _tabIndex = index);
+        },
+        children: _screens,
       ),
       bottomNavigationBar: CircleNavBar(
         activeIcons: const [
-          Icon(Icons.home, color: Colors.deepPurple),
-          Icon(Icons.person, color: Colors.deepPurple),
-          Icon(Icons.assessment, color: Colors.deepPurple),
-          Icon(Icons.book, color: Colors.deepPurple),
-          Icon(Icons.message, color: Colors.deepPurple),
+          Icon(Icons.home, color: Colors.deepPurple), // Accueil
+          Icon(Icons.person, color: Colors.deepPurple), // Profil
+          Icon(Icons.map, color: Colors.deepPurple), // Carte
+          Icon(Icons.message, color: Colors.deepPurple), // Chatbot
         ],
         inactiveIcons: const [
-          Text("Home"),
-          Text("Profile"),
+          Text("Accueil"),
+          Text("Profil"),
+          Text("Carte"),
           Text("Chatbot"),
-          Text("Auto"),
-          Text("Journal"),
         ],
         color: Colors.white,
         height: 60,
         circleWidth: 60,
         activeIndex: _tabIndex,
-        onTap: (index) => _navigateToScreen(index),
+        onTap: _onTabTapped,
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
         cornerRadius: const BorderRadius.only(
           topLeft: Radius.circular(8),
@@ -121,6 +106,43 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         shadowColor: Colors.deepPurple,
         elevation: 10,
+      ),
+    );
+  }
+}
+
+// Contenu de l'écran d'accueil
+class HomeContent extends StatelessWidget {
+  const HomeContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/image 24.png',
+              width: 100.0,
+              height: 100.0,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 20.0),
+            const Text(
+              'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16.0, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,26 +2,33 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
-  FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final SharedPreferences _prefs;
 
-  // Méthode pour sauvegarder le token
+  FirebaseAuthService() {
+    _initPrefs();
+  }
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  // Sauvegarder le token
   Future<void> _saveToken(String token) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('authToken', token);
+    await _prefs.setString('authToken', token);
   }
 
-  // Méthode pour récupérer le token
+  // Récupérer le token
   Future<String?> _getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('authToken');
+    return _prefs.getString('authToken');
   }
 
-  // Méthode pour supprimer le token (déconnexion)
+  // Supprimer le token
   Future<void> _removeToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('authToken');
+    await _prefs.remove('authToken');
   }
 
+  // Inscription
   Future<User?> signUpWithEmailAndPassword(
       String email, String password) async {
     try {
@@ -29,35 +36,50 @@ class FirebaseAuthService {
           email: email, password: password);
       return credential.user;
     } catch (e) {
-      print("Some error occurred");
+      if (e is FirebaseAuthException) {
+        print("Erreur Firebase : ${e.code}");
+      } else {
+        print("Erreur inattendue : $e");
+      }
+      return null;
     }
-    return null;
   }
 
+  // Connexion
   Future<User?> signInWithEmailAndPassword(
       String email, String password) async {
     try {
       UserCredential credential = await _auth.signInWithEmailAndPassword(
           email: email, password: password);
       if (credential.user != null) {
-        // Sauvegarder le token après une connexion réussie
-        await _saveToken(credential.user!.uid);
+        String? token = await credential.user?.getIdToken();
+        await _saveToken(token!);
       }
       return credential.user;
     } catch (e) {
-      print("Some error occurred");
+      if (e is FirebaseAuthException) {
+        print("Erreur Firebase : ${e.code}");
+      } else {
+        print("Erreur inattendue : $e");
+      }
+      return null;
     }
-    return null;
   }
 
+  // Déconnexion
   Future<void> signOut() async {
     try {
       await _auth.signOut();
-      // Supprimer le token lors de la déconnexion
       await _removeToken();
       print("Déconnexion réussie !");
     } catch (e) {
       print("Erreur lors de la déconnexion : $e");
     }
+  }
+
+  // Vérifier si l'utilisateur est connecté
+  Future<bool> isLoggedIn() async {
+    String? token = await _getToken();
+    return token != null;
   }
 }
