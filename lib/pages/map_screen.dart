@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import '../models/cabinet.dart'; // 
-import '../services/cabinet_service.dart'; 
+import '../models/cabinet.dart'; // Modèle pour les cabinets
+import '../services/cabinet_service.dart'; // Service pour récupérer les cabinets
+import 'booking_dialog.dart'; // Dialog pour la réservation (comme dans la version des complexes)
 
 class MapScreen extends StatefulWidget {
   @override
@@ -13,7 +14,7 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   MapController mapController = MapController();
   LatLng? currentLocation;
-  List<Cabinet> cabinets = []; 
+  List<Cabinet> cabinets = [];
   final CabinetService _cabinetService = CabinetService(); // Service pour charger les cabinets
 
   @override
@@ -22,7 +23,8 @@ class _MapScreenState extends State<MapScreen> {
     _requestLocationPermission(); // Demander la permission de localisation
     _loadCabinets(); // Charger les cabinets
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // _goToMyLocation(); // Optionnel : Aller à la position de l'utilisateur après le chargement
+      // Centrer la carte sur la première position des cabinets (si disponibles) ou position par défaut
+      _centerMapOnCabinets();
     });
   }
 
@@ -62,18 +64,41 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         cabinets = loadedCabinets;
       });
+      // Après le chargement des cabinets, centrer la carte
+      _centerMapOnCabinets();
     } catch (e) {
       print('Error loading cabinets: $e');
     }
   }
 
-  // Afficher les détails d'un cabinet
+  // Fonction pour obtenir la position centrale (soit des cabinets, soit par défaut)
+  LatLng _getMapCenter() {
+    if (cabinets.isNotEmpty) {
+      // Centrer sur le premier cabinet
+      return LatLng(cabinets[0].latitude, cabinets[0].longitude);
+    } else {
+      // Position par défaut (ex. Tunis)
+      return LatLng(36.8, 10.173);
+    }
+  }
+
+  // Centrer la carte sur les cabinets
+  void _centerMapOnCabinets() {
+    if (cabinets.isNotEmpty) {
+      final LatLng center = _getMapCenter();
+      mapController.move(center, 12); // Centrer et zoomer sur la position du premier cabinet
+    } else {
+      mapController.move(LatLng(36.8, 10.173), 12); // Position par défaut si aucun cabinet
+    }
+  }
+
+  // Afficher les détails d'un cabinet et proposer une réservation
   void _showCabinetDetails(Cabinet cabinet) {
     showDialog(
       barrierColor: Colors.black.withOpacity(0.8),
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(cabinet.name),
+        title: Text(cabinet.title),
         content: Text(cabinet.description ?? 'No description available'),
         actions: [
           TextButton(
@@ -81,10 +106,20 @@ class _MapScreenState extends State<MapScreen> {
             child: Text('Close'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            onPressed: () => _showBookingDialog(cabinet),
+            child: Text('Book'), // Option de réservation
           ),
         ],
+      ),
+    );
+  }
+
+  // Afficher le dialog de réservation pour un cabinet
+  void _showBookingDialog(Cabinet cabinet) {
+    showDialog(
+      context: context,
+      builder: (context) => BookingDialog(
+        cabinet: cabinet, // Passer le cabinet à la dialog de réservation
       ),
     );
   }
@@ -96,8 +131,8 @@ class _MapScreenState extends State<MapScreen> {
       body: FlutterMap(
         mapController: mapController,
         options: MapOptions(
-          center: LatLng(0, 0), // Centre initial de la carte
-          zoom: 2, // Niveau de zoom initial
+          center: _getMapCenter(), // Centre dynamique basé sur les cabinets ou une position par défaut
+          zoom: 12, // Niveau de zoom plus élevé
         ),
         children: [
           // Couche des tuiles (carte)
@@ -133,7 +168,7 @@ class _MapScreenState extends State<MapScreen> {
                   builder: (context) => GestureDetector(
                     onTap: () => _showCabinetDetails(cabinet), // Afficher les détails du cabinet
                     child: Tooltip(
-                      message: '${cabinet.name}\n${cabinet.description ?? ""}', // Infobulle
+                      message: '${cabinet.title}\n${cabinet.description ?? ""}', // Infobulle
                       child: Icon(
                         Icons.location_on_sharp,
                         color: const Color.fromARGB(255, 16, 116, 78), // Couleur du marqueur
@@ -142,7 +177,27 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
-              ),
+              ).toList(),
+              // Ajouter un marqueur à la position par défaut si aucun cabinet
+              if (cabinets.isEmpty)
+                Marker(
+                  point: LatLng(36.8, 10.173), // Position par défaut (Tunis)
+                  width: 80,
+                  height: 80,
+                  builder: (context) => GestureDetector(
+                    onTap: () {
+                      // Si on veut gérer le clic sur la position par défaut
+                    },
+                    child: Tooltip(
+                      message: 'Default Location', // Infobulle pour la position par défaut
+                      child: Icon(
+                        Icons.location_on_sharp,
+                        color: Colors.red, // Couleur différente pour la position par défaut
+                        size: 50,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],

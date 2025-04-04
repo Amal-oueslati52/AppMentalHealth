@@ -33,11 +33,19 @@ class _LoginState extends State<Login> {
     String? token = prefs.getString('authToken'); // Récupérer le token
 
     if (token != null && _auth.currentUser != null) {
-      // Rediriger vers l'écran principal si un token existe et que l'utilisateur est connecté
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      try {
+        // Rafraîchir le token pour s'assurer qu'il est valide
+        String? refreshedToken = await _auth.currentUser?.getIdToken(true);
+        if (refreshedToken != null) {
+          await saveToken(refreshedToken);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      } catch (e) {
+        print("Erreur lors du rafraîchissement du token : $e");
+      }
     }
   }
 
@@ -79,7 +87,8 @@ class _LoginState extends State<Login> {
         } else {
           showToast(
               message:
-                  "Veuillez vérifier votre email avant de vous connecter.");
+                  "Veuillez vérifier votre email. Un email de vérification a été envoyé.");
+          await user.sendEmailVerification(); // Envoyer un email de vérification
           await _auth.signOut(); // Déconnexion de l'utilisateur
         }
       }

@@ -1,32 +1,52 @@
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/cabinet.dart';
 
 class CabinetService {
+  final String baseUrl = Platform.isAndroid
+      ? 'http://192.168.0.3:1337/api'
+      : 'http://localhost:1337/api';
+
   Future<List<Cabinet>> fetchCabinets() async {
-    // Simulate API delay
-    await Future.delayed(Duration(seconds: 5));
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/cabinets")).timeout(
+          const Duration(seconds: 20)); // Augmentez la durée du timeout
 
-    // Return mock data (will be replaced with actual API call later)
-    List<Cabinet> cabinetsList = [
-      Cabinet(
-        name: 'Cabinet Beb Saadoun',
-        longitude: 36.809019,
-        latitude: 10.149182,
-        description: 'Cabinet médical à Beb Saadoun',
-      ),
-      Cabinet(
-        name: 'Cabinet Ras Tabia',
-        latitude: 36.819857,
-        longitude: 10.151501,
-        description: 'Cabinet de psychologue à Ras Tabia',
-      ),
-      Cabinet(
-        name: 'Cabinet psychologue Los Angeles',
-        latitude: 35.0522,
-        longitude: -118.900,
-        description: 'Cabinet psychologue à Los Angeles',
-      ),
-    ];
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        print('Parsed JSON: $jsonResponse');
 
-    return cabinetsList;
+        if (jsonResponse.containsKey('data')) {
+          final List<dynamic> cabinetsData = jsonResponse['data'];
+          return cabinetsData.map((cabinet) {
+            final adress = cabinet['adress'];
+            double latitude = 0.0;
+            double longitude = 0.0;
+            if (adress != null) {
+              latitude = adress['latitude']?.toDouble() ?? 0.0;
+              longitude = adress['longitude']?.toDouble() ?? 0.0;
+            }
+            return Cabinet(
+              // id: cabinet['id'] ?? '',
+              id: int.parse(cabinet['id'].toString()),
+              documentId: cabinet['documentId'] ?? '',
+              title: cabinet['title'] ?? '',
+              latitude: latitude,
+              longitude: longitude,
+              description: cabinet['description'] ?? '',
+            );
+          }).toList();
+        } else {
+          throw Exception('No data found in response');
+        }
+      } else {
+        throw Exception('Failed to load cabinets: ${response.statusCode}');
+      }
+    } catch (e, stacktrace) {
+      print('Error fetching cabinets: $e');
+      print('Stacktrace: $stacktrace');
+      return [];
+    }
   }
 }

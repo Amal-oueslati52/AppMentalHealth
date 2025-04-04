@@ -3,70 +3,101 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  late final SharedPreferences _prefs;
+  SharedPreferences? _prefs;
 
   FirebaseAuthService() {
     _initPrefs();
   }
 
+  // Initialiser les préférences partagées
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  // Sauvegarder le token
+  // Sauvegarder le token dans les préférences partagées
   Future<void> _saveToken(String token) async {
-    await _prefs.setString('authToken', token);
+    if (_prefs != null) {
+      await _prefs!.setString('authToken', token);
+    }
   }
 
-  // Récupérer le token
-  Future<String?> _getToken() async {
-    return _prefs.getString('authToken');
-  }
-
-  // Supprimer le token
+  // Supprimer le token des préférences partagées
   Future<void> _removeToken() async {
-    await _prefs.remove('authToken');
+    if (_prefs != null) {
+      await _prefs!.remove('authToken');
+    }
   }
 
-  // Inscription
-  Future<User?> signUpWithEmailAndPassword(
-      String email, String password) async {
+  // Récupérer le token depuis les préférences partagées
+  Future<String?> getSavedToken() async {
+    if (_prefs != null) {
+      return _prefs!.getString('authToken');
+    }
+    return null;
+  }
+
+  // Rafraîchir le token Firebase et le sauvegarder
+  Future<String?> getFreshToken() async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        // Force le rafraîchissement du token
+        String token = (await user.getIdToken(true)) ?? '';
+        await _saveToken(token);
+        return token;
+      }
+    } catch (e) {
+      print("Erreur lors du rafraîchissement du token : $e");
+    }
+    return null;
+  }
+
+  // Inscription avec email et mot de passe
+  Future<User?> signUpWithEmailAndPassword(String email, String password) async {
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
+        email: email.trim(),
+        password: password,
+      );
+      print("Inscription réussie pour l'utilisateur : ${credential.user?.email}");
       return credential.user;
     } catch (e) {
-      if (e is FirebaseAuthException) {
-        print("Erreur Firebase : ${e.code}");
-      } else {
-        print("Erreur inattendue : $e");
-      }
+      print("Erreur d'inscription : ${e.toString()}");
       return null;
     }
   }
 
-  // Connexion
-  Future<User?> signInWithEmailAndPassword(
-      String email, String password) async {
+  // Connexion avec email et mot de passe
+  Future<User?> signInWithEmailAndPassword(String email, String password) async {
     try {
+      print("Tentative de connexion avec l'email : $email");
       UserCredential credential = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
+        email: email.trim(),
+        password: password,
+      );
+
       if (credential.user != null) {
-        String? token = await credential.user?.getIdToken();
-        await _saveToken(token!);
+        // Vérifiez si l'email est vérifié
+        if (!credential.user!.emailVerified) {
+          print("L'email n'est pas vérifié pour l'utilisateur : ${credential.user!.email}");
+          await credential.user!.sendEmailVerification();
+          print("Email de vérification envoyé.");
+          return null; // Retournez null si l'email n'est pas vérifié
+        }
+
+        // Récupérer et sauvegarder le token
+        String token = (await credential.user!.getIdToken()) ?? '';
+        await _saveToken(token);
+        print("Connexion réussie pour l'utilisateur : ${credential.user!.email}");
       }
       return credential.user;
     } catch (e) {
-      if (e is FirebaseAuthException) {
-        print("Erreur Firebase : ${e.code}");
-      } else {
-        print("Erreur inattendue : $e");
-      }
+      print("Erreur de connexion : ${e.toString()}");
       return null;
     }
   }
 
-  // Déconnexion
+  // Déconnexion de l'utilisateur
   Future<void> signOut() async {
     try {
       await _auth.signOut();
@@ -79,7 +110,40 @@ class FirebaseAuthService {
 
   // Vérifier si l'utilisateur est connecté
   Future<bool> isLoggedIn() async {
-    String? token = await _getToken();
-    return token != null;
+    return _auth.currentUser != null;
+  }
+
+  // Récupérer l'utilisateur actuellement connecté
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+
+  // Réinitialiser le mot de passe
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      print("Email de réinitialisation envoyé à $email");
+    } catch (e) {
+      print("Erreur lors de la réinitialisation du mot de passe : $e");
+    }
+  }
+
+  // Vérifier si l'email est vérifié
+  Future<bool> isEmailVerified() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await user.reload(); // Recharge les informations utilisateur
+      return user.emailVerified;
+    }
+    return false;
+  }
+
+  // Envoyer un email de vérification
+  Future<void> sendEmailVerification() async {
+    User? user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+      print("Email de vérification envoyé à ${user.email}");
+    }
   }
 }
