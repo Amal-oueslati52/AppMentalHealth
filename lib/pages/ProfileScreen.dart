@@ -1,12 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'login.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import '../services/strapi_auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -16,23 +9,14 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ImagePicker _picker = ImagePicker();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Ajoutez cette ligne
-
-  User? _user;
-  Map<String, dynamic>? _userData;
+  final AuthService _authService = AuthService();
   bool _isEditing = false;
   bool _isLoading = false;
 
-  // Contrôleurs pour les champs de texte
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _genreController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _objectifController = TextEditingController();
-
-  File? _imageFile;
 
   @override
   void initState() {
@@ -49,92 +33,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Fonction pour charger les données utilisateur depuis Firebase
   Future<void> _loadUserData() async {
-    _user = _auth.currentUser;
-    if (_user != null) {
-      DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(_user!.uid).get();
-      if (userDoc.exists) {
-        setState(() {
-          _userData = userDoc.data() as Map<String, dynamic>?;
-          _nameController.text = _userData?['name'] ?? '';
-          _genreController.text = _userData?['genre'] ?? '';
-          _ageController.text = _userData?['age'] ?? '';
-          _objectifController.text = _userData?['objectif'] ?? '';
-        });
-      }
-    }
-  }
-
-  // Fonction pour sélectionner une image depuis la galerie
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
-  }
-
-  // Fonction pour télécharger l'image dans Firebase Storage
-  Future<String?> _uploadImage(File imageFile) async {
     try {
-      // Générer un nom de fichier unique
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-
-      // Référence vers Firebase Storage
-      Reference storageReference =
-          FirebaseStorage.instance.ref().child('profile_images/$fileName.jpg');
-
-      // Télécharger l'image
-      UploadTask uploadTask = storageReference.putFile(imageFile);
-      TaskSnapshot taskSnapshot = await uploadTask;
-
-      // Récupérer l'URL de l'image téléchargée
-      String downloadURL = await taskSnapshot.ref.getDownloadURL();
-      return downloadURL;
+      final user = await _authService.getCurrentUser();
+      setState(() {
+        _nameController.text = user.name;
+        _genreController.text = user.genre;
+        _ageController.text = user.age;
+        _objectifController.text = user.objectif;
+      });
     } catch (e) {
-      print("Erreur lors du téléchargement de l'image : $e");
-      return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors du chargement du profil: $e")),
+      );
     }
   }
 
-  // Fonction pour enregistrer les modifications
   Future<void> _saveChanges() async {
-    if (_user == null) return;
+    // Validate required fields
+    if (_nameController.text.trim().isEmpty ||
+        _genreController.text.trim().isEmpty ||
+        _ageController.text.trim().isEmpty ||
+        _objectifController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("All fields must be filled")),
+      );
+      return;
+    }
+
+    // Validate age is a number
+    if (int.tryParse(_ageController.text.trim()) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Age must be a valid number")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      String? imageUrl;
-      if (_imageFile != null) {
-        // Télécharger l'image et récupérer son URL
-        imageUrl = await _uploadImage(_imageFile!);
-      }
-
-      // Mettre à jour les données du profil dans Firestore
-      await _firestore.collection('users').doc(_user!.uid).update({
+      await _authService.updateProfile({
         'name': _nameController.text.trim(),
         'genre': _genreController.text.trim(),
         'age': _ageController.text.trim(),
         'objectif': _objectifController.text.trim(),
-        if (imageUrl != null)
-          'photoUrl': imageUrl, // Ajouter l'URL de l'image si elle existe
       });
 
       setState(() => _isEditing = false);
+      await _loadUserData(); // Reload the data after update
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profil mis à jour avec succès !")),
       );
     } catch (e) {
-      print("Erreur mise à jour: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de la mise à jour: $e")),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  // Fonction pour déconnecter l'utilisateur
   Future<void> _logout() async {
     bool confirm = await showDialog(
       context: context,
@@ -156,23 +115,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirm == true) {
       try {
-        await _auth.signOut();
-        await _googleSignIn.signOut(); // Déconnexion de Google Sign-In
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.remove('authToken'); // Supprimer le token d'authentification
-
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const Login()),
-          );
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Déconnexion réussie !")),
-        );
+        await _authService.logout(context);
       } catch (e) {
-        print("Erreur lors de la déconnexion : $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur lors de la déconnexion: $e")),
+        );
       }
     }
   }
@@ -182,11 +129,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
         controller: controller,
+        keyboardType:
+            label == "Âge" ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.8),
+          fillColor: Colors.white.withAlpha((0.8 * 255).toInt()),
         ),
       ),
     );
@@ -206,25 +155,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: _imageFile != null
-                        ? FileImage(
-                            _imageFile!) // Afficher l'image sélectionnée
-                        : (_userData?['photoUrl'] != null
-                            ? NetworkImage(_userData![
-                                'photoUrl']) // Afficher l'image du profil
-                            : const AssetImage('assets/default_avatar.png')
-                                as ImageProvider), // Image par défaut
-                  ),
+                const SizedBox(height: 40),
+                const Icon(
+                  Icons.account_circle,
+                  size: 100,
+                  color: Colors.white,
                 ),
                 const SizedBox(height: 20),
                 _buildEditableField("Nom", _nameController),
@@ -267,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _logout, // Appeler la méthode _logout
+                  onPressed: _logout,
                   style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(136, 203, 93, 207),
                       padding: const EdgeInsets.symmetric(

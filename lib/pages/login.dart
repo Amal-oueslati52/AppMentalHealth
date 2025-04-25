@@ -1,10 +1,10 @@
+import 'package:app/services/strapi_auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/pages/HomeScreen.dart';
 import 'package:app/pages/sign_up.dart';
 import 'package:app/toast/toast.dart';
+import 'package:logger/logger.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -14,8 +14,8 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final AuthService _authService = AuthService();
+  final Logger _logger = Logger();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _emailFocusNode = FocusNode();
@@ -25,33 +25,24 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    _checkIfLoggedIn(); // Vérifier si l'utilisateur est déjà connecté
+    _checkIfLoggedIn();
   }
 
   Future<void> _checkIfLoggedIn() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString('authToken'); // Récupérer le token
+    String? token = prefs.getString('jwt');
 
-    if (token != null && _auth.currentUser != null) {
-      try {
-        // Rafraîchir le token pour s'assurer qu'il est valide
-        String? refreshedToken = await _auth.currentUser?.getIdToken(true);
-        if (refreshedToken != null) {
-          await saveToken(refreshedToken);
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        }
-      } catch (e) {
-        print("Erreur lors du rafraîchissement du token : $e");
-      }
+    if (token != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }
   }
 
-  Future<void> saveToken(String token) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('authToken', token); // Sauvegarder le token
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
   }
 
   Future<void> _signIn() async {
@@ -61,121 +52,29 @@ class _LoginState extends State<Login> {
     String password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      showToast(message: "Veuillez entrer votre email et mot de passe.");
+      showToast(message: "Please enter your email and password");
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    if (!_isValidEmail(email)) {
+      showToast(message: "Please enter a valid email");
       setState(() => _isLoading = false);
       return;
     }
 
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: email, password: password);
-      User? user = userCredential.user;
-
-      if (user != null) {
-        if (user.emailVerified) {
-          showToast(message: "Connexion réussie !");
-
-          // Sauvegarder le token JWT Firebase
-          String? token = await user.getIdToken();
-          await saveToken(token!);
-
-          // Rediriger vers l'écran principal
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
-        } else {
-          showToast(
-              message:
-                  "Veuillez vérifier votre email. Un email de vérification a été envoyé.");
-          await user.sendEmailVerification(); // Envoyer un email de vérification
-          await _auth.signOut(); // Déconnexion de l'utilisateur
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      showToast(message: _getFirebaseErrorMessage(e.code));
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        showToast(message: "Connexion Google annulée.");
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      await _authService.login(email, password);
+      showToast(message: "Login successful!");
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
-
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      User? user = userCredential.user;
-
-      if (user != null) {
-        showToast(message: "Connexion Google réussie !");
-
-        // Sauvegarder le token JWT Firebase
-        String? token = await user.getIdToken();
-        await saveToken(token!);
-
-        // Rediriger vers l'écran principal
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      showToast(message: _getFirebaseErrorMessage(e.code));
+    } catch (e) {
+      _logger.e('Login error: $e');
+      showToast(message: "Login failed. Please check your credentials.");
     } finally {
       setState(() => _isLoading = false);
-    }
-  }
-
-  String _getFirebaseErrorMessage(String errorCode) {
-    switch (errorCode) {
-      case "invalid-email":
-        return "Format d'email invalide.";
-      case "user-not-found":
-        return "Aucun utilisateur trouvé avec cet email.";
-      case "wrong-password":
-        return "Mot de passe incorrect.";
-      case "user-disabled":
-        return "Ce compte a été désactivé.";
-      case "too-many-requests":
-        return "Trop de tentatives. Réessayez plus tard.";
-      case "operation-not-allowed":
-        return "Méthode de connexion non autorisée.";
-      case "network-request-failed":
-        return "Erreur réseau. Vérifiez votre connexion.";
-      default:
-        return "Une erreur s'est produite. Veuillez réessayer.";
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    String email = _emailController.text.trim();
-    if (email.isEmpty) {
-      showToast(
-          message:
-              "Veuillez entrer votre email pour réinitialiser le mot de passe.");
-      return;
-    }
-
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-      showToast(message: "Lien de réinitialisation envoyé à votre email.");
-    } on FirebaseAuthException catch (e) {
-      showToast(message: _getFirebaseErrorMessage(e.code));
     }
   }
 
@@ -209,7 +108,7 @@ class _LoginState extends State<Login> {
               children: [
                 const SizedBox(height: 60),
                 const Text(
-                  'Connexion',
+                  'Login',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -217,8 +116,6 @@ class _LoginState extends State<Login> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Champ Email
                 TextField(
                   controller: _emailController,
                   focusNode: _emailFocusNode,
@@ -227,23 +124,17 @@ class _LoginState extends State<Login> {
                   textInputAction: TextInputAction.next,
                   onSubmitted: (_) => _passwordFocusNode.requestFocus(),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Champ Password
                 TextField(
                   controller: _passwordController,
                   focusNode: _passwordFocusNode,
-                  decoration: _inputDecoration('Mot de passe', Icons.lock),
+                  decoration: _inputDecoration('Password', Icons.lock),
                   obscureText: true,
                   enableSuggestions: false,
                   autocorrect: false,
                   textInputAction: TextInputAction.done,
                 ),
-
                 const SizedBox(height: 30),
-
-                // Bouton Login
                 ElevatedButton(
                   onPressed: _isLoading ? null : _signIn,
                   style: ElevatedButton.styleFrom(
@@ -254,7 +145,7 @@ class _LoginState extends State<Login> {
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'Connexion',
+                          'Login',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -262,72 +153,23 @@ class _LoginState extends State<Login> {
                           ),
                         ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Bouton Google Sign-In
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _signInWithGoogle,
-                  icon: Image.asset('assets/icones/logoGoogle.png', height: 20),
-                  label: const Text(
-                    'Connexion avec Google',
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SignUp()),
+                    );
+                  },
+                  child: const Text(
+                    'Create an account',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 15),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Créer un compte & Mot de passe oublié
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const SignUp()),
-                          );
-                        },
-                        child: const Text(
-                          'Créer un compte',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: _resetPassword,
-                        child: const Text(
-                          'Mot de passe oublié ?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),

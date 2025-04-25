@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 
 class BookingService {
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.3:1337/api'
+      ? 'http://192.168.1.17:1337/api'
       : 'http://localhost:1337/api';
 
   final Logger logger = Logger();
@@ -22,15 +22,19 @@ class BookingService {
   Future<List<DateTime>> fetchAvailableDatetimes(String documentId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('$baseUrl/available-datetimes/$documentId'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/available-datetimes/$documentId'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
         final data = jsonResponse['data'] as List<dynamic>? ?? [];
-        return data.map((dateStr) => DateTime.parse(dateStr.toString())).toList();
+        return data
+            .map((dateStr) => DateTime.parse(dateStr.toString()))
+            .toList();
       } else {
         throw Exception('Failed to load available datetimes: ${response.body}');
       }
@@ -53,17 +57,19 @@ class BookingService {
           'date': dateTime.toUtc().toIso8601String(),
           'cabinet': {'id': cabinetId},
           'state': 'PENDING',
-          'users_permissions_user': {'id': 1},
+          'users_permissions_user': {'id': int.parse(userID)},
         }
       });
-      
+
       logger.i('Request Body: $body');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/reservations'),
-        headers: headers,
-        body: body,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/reservations'),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
         return true;
@@ -93,10 +99,13 @@ class BookingService {
   }) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('$baseUrl/reservations?populate=cabinet&filters[user][id][\$eq]=$userID&page=$page&pageSize=$pageSize'),
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(
+                '$baseUrl/reservations?populate=cabinet&filters[user][id][\$eq]=$userID&page=$page&pageSize=$pageSize'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
@@ -117,11 +126,15 @@ class BookingService {
   Future<bool> cancelReservation(String reservationId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('$baseUrl/reservations/$reservationId'),
-        headers: headers,
-        body: json.encode({'data': {'state': 'CANCELED'}}),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/reservations/$reservationId'),
+            headers: headers,
+            body: json.encode({
+              'data': {'state': 'CANCELED'}
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return true;

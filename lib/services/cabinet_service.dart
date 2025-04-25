@@ -5,7 +5,7 @@ import '../models/cabinet.dart';
 
 class CabinetService {
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.3:1337/api'
+      ? 'http://192.168.1.17:1337/api'
       : 'http://localhost:1337/api';
 
   Future<List<Cabinet>> fetchCabinets() async {
