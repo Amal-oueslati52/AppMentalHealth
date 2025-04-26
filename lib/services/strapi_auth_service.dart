@@ -71,7 +71,7 @@ class AuthService {
         throw Exception('Failed to login: $errorMessage');
       }
     } catch (e) {
-      _logger.e('Error during login process', e);
+      _logger.e('Error during login process: ${e.toString()}');
       throw Exception('Authentication failed: ${e.toString()}');
     }
   }
@@ -116,7 +116,7 @@ class AuthService {
         throw Exception('Failed to register: $errorMessage');
       }
     } catch (e) {
-      _logger.e('Error during registration process', e);
+      _logger.e('Error during registration process: ${e.toString()}');
       throw Exception('Registration failed: ${e.toString()}');
     }
   }
@@ -138,7 +138,7 @@ class AuthService {
         (Route<dynamic> route) => false,
       );
     } catch (e) {
-      _logger.e('Error during logout process', e);
+      _logger.e('Error during logout process: ${e.toString()}');
       throw Exception('Logout failed: ${e.toString()}');
     }
   }
@@ -162,7 +162,7 @@ class AuthService {
 
       return user;
     } catch (e) {
-      _logger.e('Error getting current user', e);
+      _logger.e('Error getting current user: ${e.toString()}');
       throw Exception('Failed to fetch user data: ${e.toString()}');
     }
   }
@@ -234,7 +234,7 @@ class AuthService {
       UserProvider.user = updatedUser;
       return updatedUser;
     } catch (e) {
-      _logger.e('Error updating user profile', e);
+      _logger.e('Error updating user profile: ${e.toString()}');
       throw Exception('Failed to update profile: ${e.toString()}');
     }
   }

@@ -5,7 +5,7 @@ import 'package:app/toast/toast.dart';
 import 'package:logger/logger.dart';
 
 class SignUp extends StatefulWidget {
-  const SignUp({Key? key}) : super(key: key);
+  const SignUp({super.key}); // Updated constructor syntax
 
   @override
   _SignUpState createState() => _SignUpState();
@@ -60,8 +60,6 @@ class _SignUpState extends State<SignUp> {
       return;
     }
 
-  
-
     // Validate age is a number
     if (int.tryParse(age) == null) {
       showToast(message: "Age must be a valid number");
@@ -77,6 +75,10 @@ class _SignUpState extends State<SignUp> {
         genre: genre,
         objectif: objectif,
       );
+
+      // Connecter automatiquement après l'inscription
+      await _authService.login(email, password);
+
       showToast(message: "Account created successfully");
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const HomeScreen()));
@@ -131,7 +133,17 @@ class _SignUpState extends State<SignUp> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 40),
                   const Text(
                     'Sign Up',
                     style: TextStyle(
@@ -156,7 +168,6 @@ class _SignUpState extends State<SignUp> {
                     obscureText: true,
                   ),
                   const SizedBox(height: 20),
-                  
                   TextField(
                       controller: _genreController,
                       decoration: _inputDecoration("Genre", Icons.person)),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:app/pages/login.dart'; 
+import 'package:app/pages/login.dart';
+import 'package:app/pages/HomeScreen.dart';
+import 'package:app/services/strapi_auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -7,20 +9,41 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
-    _navigateToHome();
+    _checkAuthAndNavigate();
   }
 
-  _navigateToHome() async {
-    await Future.delayed(Duration(seconds: 5), () {
+  _checkAuthAndNavigate() async {
+    await Future.delayed(Duration(seconds: 3));
+
+    bool isAuthenticated = await _authService.isAuthenticated();
+
+    if (!mounted) return;
+
+    if (isAuthenticated) {
+      // Récupérer les données utilisateur si authentifié
+      try {
+        await _authService.getCurrentUser();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      } catch (e) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Login()),
+        );
+      }
+    } else {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Login()),
       );
-    });
+    }
   }
 
   @override

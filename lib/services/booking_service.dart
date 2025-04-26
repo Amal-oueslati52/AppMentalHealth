@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logger/logger.dart';
+import 'package:app/services/strapi_auth_service.dart';
 
 class BookingService {
+  final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
       ? 'http://192.168.1.17:1337/api'
       : 'http://localhost:1337/api';
@@ -13,12 +15,18 @@ class BookingService {
 
   // Centralisation des en-têtes avec gestion améliorée du token
   Future<Map<String, String>> _getHeaders() async {
+    final token = await _authService.getAuthToken();
+    if (token == null) {
+      throw Exception('User not logged in');
+    }
+
     return {
       'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
     };
   }
 
-  // Récupérer les créneaux disponibles
+  // Gestion d'erreur améliorée
   Future<List<DateTime>> fetchAvailableDatetimes(String documentId) async {
     try {
       final headers = await _getHeaders();
@@ -40,7 +48,7 @@ class BookingService {
       }
     } catch (e) {
       logger.e('Error fetching available datetimes: $e');
-      return [];
+      rethrow; // Propager l'erreur pour une meilleure gestion
     }
   }
 
@@ -52,16 +60,17 @@ class BookingService {
   }) async {
     try {
       final headers = await _getHeaders();
+      // Structure correcte pour Strapi
       final body = json.encode({
         'data': {
           'date': dateTime.toUtc().toIso8601String(),
-          'cabinet': {'id': cabinetId},
-          'state': 'PENDING',
-          'users_permissions_user': {'id': int.parse(userID)},
+          'users_permissions_user': userID,
+          'cabinet': cabinetId,
+          'state': 'PENDING'
         }
       });
 
-      logger.i('Request Body: $body');
+      logger.i('Creating reservation with body: $body');
 
       final response = await http
           .post(
@@ -71,18 +80,11 @@ class BookingService {
           )
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
-      } else if (response.statusCode == 401) {
-        logger.w('Unauthorized: Retrying with refreshed token');
-        final newHeaders = await _getHeaders();
-        final retryResponse = await http.post(
-          Uri.parse('$baseUrl/reservations'),
-          headers: newHeaders,
-          body: body,
-        );
-        return retryResponse.statusCode == 201;
       } else {
+        logger.e('Reservation failed with status: ${response.statusCode}');
+        logger.e('Response body: ${response.body}');
         throw Exception('Error creating reservation: ${response.body}');
       }
     } catch (e) {

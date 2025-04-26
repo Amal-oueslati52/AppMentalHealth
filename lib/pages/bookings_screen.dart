@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:app/services/booking_service.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Importer FirebaseAuth
+import 'package:app/user_provider.dart';
 
 class BookingsScreen extends StatefulWidget {
   @override
@@ -22,27 +22,37 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   Future<void> _loadBookings({int page = 1}) async {
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
     try {
-      // Récupérer l'utilisateur actuellement connecté
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      if (UserProvider.user == null) {
         throw Exception('User not logged in');
       }
 
-      // Charger les réservations avec pagination
       final result = await _bookingService.fetchUserBookings(
-        userID: user.uid,
+        userID: UserProvider.user!.id.toString(),
+        page: page,
+        pageSize: 10,
       );
 
-      setState(() {
-        _bookings = result['data'];
-        _currentPage = result['meta']['pagination']['page'];
-        _totalPages = result['meta']['pagination']['pageCount'];
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _bookings = result['data'];
+          final pagination = result['meta']?['pagination'];
+          if (pagination != null) {
+            _currentPage = pagination['page'] ?? 1;
+            _totalPages = pagination['pageCount'] ?? 1;
+          }
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading bookings: $e');
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -70,7 +80,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Bookings')),
+      appBar: AppBar(
+        title: Text('My Bookings'),
+        backgroundColor: Color(0xFFCA88CD),
+      ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -87,7 +100,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               DateTime? date;
                               try {
                                 // Parse UTC date et convertit en local
-                                date = DateTime.parse(booking['date'] ?? '').toLocal();
+                                date = DateTime.parse(booking['date'] ?? '')
+                                    .toLocal();
                               } catch (e) {
                                 date = DateTime.now();
                               }
@@ -97,12 +111,14 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               final cabinet = booking['cabinet'] ?? {};
 
                               return ListTile(
-                                title: Text(cabinet['title'] ?? 'Unknown cabinet'),
+                                title:
+                                    Text(cabinet['title'] ?? 'Unknown cabinet'),
                                 subtitle: Text(formattedDate),
                                 trailing: Text(
                                   booking['state'] ?? 'PENDING',
                                   style: TextStyle(
-                                    color: (booking['state'] ?? 'PENDING').trim() ==
+                                    color: (booking['state'] ?? 'PENDING')
+                                                .trim() ==
                                             'CONFIRMED'
                                         ? Colors.green
                                         : Colors.orange,

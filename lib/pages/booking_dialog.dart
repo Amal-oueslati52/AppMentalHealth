@@ -3,8 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:another_flushbar/flushbar.dart';
 import '../models/cabinet.dart';
 import '../services/booking_service.dart';
-//import 'package:app/firebase.dart/Auth.dart'; // Assurez-vous d'importer votre service FirebaseAuthService
-import 'package:firebase_auth/firebase_auth.dart'; // Importer FirebaseAuth
+import '../user_provider.dart';
 
 class BookingDialog extends StatefulWidget {
   final Cabinet cabinet;
@@ -20,7 +19,6 @@ class BookingDialog extends StatefulWidget {
 
 class _BookingDialogState extends State<BookingDialog> {
   final BookingService _bookingService = BookingService();
-  // Removed unused field '_firebaseAuthService'
   DateTime? _selectedDate;
   String? _selectedTime;
   Map<DateTime, List<String>> _dateTimeMap = {};
@@ -34,7 +32,8 @@ class _BookingDialogState extends State<BookingDialog> {
 
   Future<void> _loadAvailableDatetimes() async {
     try {
-      final datetimes = await _bookingService.fetchAvailableDatetimes(widget.cabinet.documentId);
+      final datetimes = await _bookingService
+          .fetchAvailableDatetimes(widget.cabinet.documentId);
       setState(() {
         _dateTimeMap = _createDateTimeMap(datetimes);
       });
@@ -56,7 +55,8 @@ class _BookingDialogState extends State<BookingDialog> {
     for (var dt in datetimes) {
       final localDt = dt.toLocal();
       final date = DateTime(localDt.year, localDt.month, localDt.day);
-      final time = '${localDt.hour.toString().padLeft(2, '0')}:${localDt.minute.toString().padLeft(2, '0')}';
+      final time =
+          '${localDt.hour.toString().padLeft(2, '0')}:${localDt.minute.toString().padLeft(2, '0')}';
       map.putIfAbsent(date, () => []).add(time);
     }
     map.forEach((_, times) => times.sort());
@@ -91,16 +91,19 @@ class _BookingDialogState extends State<BookingDialog> {
 
   Widget _buildTimeDropdown() {
     if (_selectedDate == null) return SizedBox.shrink();
-    final date = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+    final date =
+        DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
     final times = _dateTimeMap[date] ?? [];
     return DropdownButton<String>(
       isExpanded: true,
       hint: Text('Select time'),
       value: _selectedTime,
-      items: times.map((time) => DropdownMenuItem(
-        value: time,
-        child: Text(time),
-      )).toList(),
+      items: times
+          .map((time) => DropdownMenuItem(
+                value: time,
+                child: Text(time),
+              ))
+          .toList(),
       onChanged: (value) => setState(() => _selectedTime = value),
     );
   }
@@ -118,31 +121,24 @@ class _BookingDialogState extends State<BookingDialog> {
       return;
     }
 
-    final timeParts = _selectedTime!.split(':');
-    final hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-    final dateTime = DateTime(
-      _selectedDate!.year,
-      _selectedDate!.month,
-      _selectedDate!.day,
-      hour,
-      minute,
-    );
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Récupérer l'utilisateur actuellement connecté
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('User not logged in');
+      // Vérifier si l'utilisateur est connecté via UserProvider
+      if (UserProvider.user == null) {
+        throw Exception('Please login first');
       }
 
-      // Créer la réservation
+      final dateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        int.parse(_selectedTime!.split(':')[0]),
+        int.parse(_selectedTime!.split(':')[1]),
+      );
+
       final success = await _bookingService.createReservation(
-        userID: user.uid,
+        userID: UserProvider.user!.id.toString(),
         cabinetId: widget.cabinet.id,
         dateTime: dateTime,
       );
@@ -151,27 +147,28 @@ class _BookingDialogState extends State<BookingDialog> {
 
       Navigator.pop(context);
       Flushbar(
-        message: success ? 'Booking confirmed!' : 'Failed to book. Please try again.',
+        message: success
+            ? 'Booking confirmed!'
+            : 'Failed to book. Please try again.',
         duration: Duration(seconds: 3),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-        borderRadius: BorderRadius.circular(8),
         backgroundColor: success ? Colors.green : Colors.red,
         flushbarPosition: FlushbarPosition.TOP,
       ).show(context);
     } catch (e) {
       print('Error during booking confirmation: $e');
-      Flushbar(
-        message: 'An error occurred. Please try again.',
-        duration: Duration(seconds: 3),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-        borderRadius: BorderRadius.circular(8),
-        backgroundColor: Colors.red,
-        flushbarPosition: FlushbarPosition.TOP,
-      ).show(context);
+      if (mounted) {
+        Navigator.pop(context);
+        Flushbar(
+          message: 'Please login to make a reservation',
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.red,
+          flushbarPosition: FlushbarPosition.TOP,
+        ).show(context);
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
