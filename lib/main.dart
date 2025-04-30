@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:app/pages/splash_screen.dart';
+import 'package:app/patient/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

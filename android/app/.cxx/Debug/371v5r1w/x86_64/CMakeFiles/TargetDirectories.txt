@@ -1,0 +1,2 @@
+C:/FlutterApps/RahtiApp/android/app/.cxx/Debug/371v5r1w/x86_64/CMakeFiles/edit_cache.dir
+C:/FlutterApps/RahtiApp/android/app/.cxx/Debug/371v5r1w/x86_64/CMakeFiles/rebuild_cache.dir

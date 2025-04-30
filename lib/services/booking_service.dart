@@ -8,7 +8,7 @@ import 'package:app/services/strapi_auth_service.dart';
 class BookingService {
   final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.1.17:1337/api'
+      ? 'http://192.168.1.11:1337/api'
       : 'http://localhost:1337/api';
 
   final Logger logger = Logger();
