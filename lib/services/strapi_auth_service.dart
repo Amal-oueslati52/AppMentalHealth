@@ -60,14 +60,10 @@ class AuthService {
 
           if (doctorData['data'] != null && doctorData['data'].isNotEmpty) {
             final doctorInfo = doctorData['data'][0];
-            final doctorAttributes = doctorInfo['attributes'];
-            _logger
-                .i('Found doctor profile with attributes: $doctorAttributes');
+            _logger.i('Found doctor profile with data: $doctorInfo');
 
             userData.addAll({
               'roleType': 'DOCTOR',
-              'isApproved': doctorAttributes['isApproved'] ?? false,
-              'speciality': doctorAttributes['speciality'] ?? '',
               'doctor': doctorInfo,
             });
             await _storage.saveUserRole('DOCTOR');
@@ -92,6 +88,7 @@ class AuthService {
           'user': userData,
         });
 
+        _logger.d('Final user data before creating User object: $userData');
         UserProvider.user = User.fromJson(userData);
         return {'jwt': jwt, 'user': userData};
       } else {
@@ -114,13 +111,15 @@ class AuthService {
       final user = await getCurrentUser();
       if (!context.mounted) return;
 
-      _logger.i(
-          'Navigating for user - Role: ${user.roleType}, isApproved: ${user.isApproved}');
+      _logger.i('Navigating for user - Role: ${user.roleType}');
 
       if (user.roleType.toUpperCase() == 'DOCTOR') {
-        // For doctors, check approval status from the doctor profile
-        final isApproved = user.isApproved;
-        _logger.i('Doctor approval status: $isApproved');
+        // Debugger les données docteur reçues
+        _logger.d('Doctor data for navigation: ${user.doctor}');
+
+        // Vérification directe de isApproved à la racine de l'objet docteur
+        final isApproved = user.doctor?['isApproved'] ?? false;
+        _logger.i('Doctor approval status: $isApproved (direct access)');
 
         if (isApproved) {
           _logger.i('Doctor is approved -> DoctorHome');
@@ -394,32 +393,18 @@ class AuthService {
             final doctorInfo = doctorData['data'][0];
             // Store the entire doctor object
             finalUserData['doctor'] = doctorInfo;
-
-            // Also store top-level properties for backward compatibility
-            finalUserData.addAll({
-              'roleType': roleType,
-              'isApproved': doctorInfo['isApproved'] ?? false,
-              'speciality': doctorInfo['speciality'] ?? '',
-            });
+            _logger.d('Doctor info stored: $doctorInfo');
           } else {
-            finalUserData.addAll({
-              'roleType': roleType,
-              'isApproved': false,
-              'speciality': '',
-            });
+            _logger.w('No doctor profile found');
+            finalUserData.addAll({'roleType': roleType, 'doctor': null});
           }
         } catch (e) {
           _logger.e('Error fetching doctor profile: $e');
-          finalUserData.addAll({
-            'roleType': roleType,
-            'isApproved': false,
-            'speciality': '',
-          });
+          finalUserData.addAll({'roleType': roleType, 'doctor': null});
         }
       } else {
         finalUserData.addAll({
           'roleType': 'PATIENT',
-          'isApproved': true,
           'isProfileComplete': true,
         });
       }
@@ -514,7 +499,7 @@ class AuthService {
       final jwt = await getAuthToken();
       if (jwt == null) throw Exception('No authentication token found');
 
-      // Récupérer les données utilisateur avec les profils
+      _logger.d('Fetching complete user data...');
       final userResponse = await http.get(
         Uri.parse('$baseUrl/users/me'),
         headers: {'Authorization': 'Bearer $jwt'},
@@ -524,7 +509,6 @@ class AuthService {
       final Map<String, dynamic> finalUserData =
           Map<String, dynamic>.from(userData);
 
-      // Vérifier le type d'utilisateur
       final roleType =
           (finalUserData['roleType'] ?? 'PATIENT').toString().toUpperCase();
 
@@ -537,8 +521,11 @@ class AuthService {
         );
 
         final doctorData = json.decode(doctorResponse.body);
+        _logger.d('Doctor data received: $doctorData');
+
         if (doctorData['data']?.isNotEmpty ?? false) {
-          finalUserData['doctor'] = doctorData['data'][0]['attributes'];
+          // Stocker l'objet docteur complet, pas seulement ses attributs
+          finalUserData['doctor'] = doctorData['data'][0];
         }
       } else {
         // Récupérer le profil patient
@@ -554,6 +541,7 @@ class AuthService {
         }
       }
 
+      _logger.d('Final user data: $finalUserData');
       return User.fromJson(finalUserData);
     } catch (e) {
       _logger.e('Error fetching user data: $e');

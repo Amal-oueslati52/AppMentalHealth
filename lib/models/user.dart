@@ -40,12 +40,21 @@ class User {
     );
   }
 
-  bool get isApproved =>
-      roleType == 'DOCTOR' ? (doctor?['isApproved'] ?? false) : true;
+  bool get isApproved {
+    if (roleType != 'DOCTOR') return true;
+    if (doctor == null) return false;
+    return doctor?['isApproved'] ?? false;
+  }
 
   bool get isProfileComplete =>
       roleType == 'DOCTOR' ? doctor != null : patient != null;
 
   String? get speciality => doctor?['speciality'];
   String? get birthdate => patient?['birthdate'];
+  
+  // Updated getter to access the doctor ID correctly
+  String? get doctorId => doctor?['id']?.toString();
+
+  // New getter for document ID
+  String? get documentId => doctor?['documentId']?.toString();
 }

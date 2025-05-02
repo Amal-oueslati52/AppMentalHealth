@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import '../user_provider.dart';
+import 'doctor_cabinets_screen.dart';
 
 class DoctorHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final userName = UserProvider.user?.name ?? 'Docteur';
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Espace Psychologue'),
@@ -15,46 +19,50 @@ class DoctorHome extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bonjour, Dr. Dupont',
+              'Bonjour, $userName',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            Text(
-              'Vos rendez-vous du jour',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
             SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: 5, // Exemple de 5 rendez-vous
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.teal,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                      title: Text('Patient ${index + 1}'),
-                      subtitle: Text('Heure: ${9 + index}:00 AM'),
-                      trailing: Icon(Icons.arrow_forward_ios),
-                      onTap: () {
-                        // Action lors du clic sur un rendez-vous
-                      },
-                    ),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.business, color: Colors.teal),
+                title: Text('Mes Cabinets'),
+                subtitle: Text('Gérer vos cabinets et réservations'),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => DoctorCabinetsScreen()),
                   );
+                },
+              ),
+            ),
+            SizedBox(height: 10),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.calendar_today, color: Colors.teal),
+                title: Text('Réservations du Jour'),
+                subtitle: Text('Voir les rendez-vous à venir'),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  // TODO: Implement daily reservations view
+                },
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.schedule, color: Colors.teal),
+                title: Text('Horaires de Travail'),
+                subtitle: Text('Gérer vos disponibilités'),
+                trailing: Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  // TODO: Implement work hours management
                 },
               ),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Action pour ajouter un nouveau rendez-vous
-        },
-        backgroundColor: Colors.teal,
-        child: Icon(Icons.add),
       ),
     );
   }

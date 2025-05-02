@@ -31,22 +31,34 @@ class _BookingDialogState extends State<BookingDialog> {
   }
 
   Future<void> _loadAvailableDatetimes() async {
+    setState(() => _isLoading = true);
     try {
+      if (widget.cabinet.id == 0) {
+        throw Exception('Invalid cabinet ID');
+      }
+
       final datetimes = await _bookingService
-          .fetchAvailableDatetimes(widget.cabinet.documentId);
-      setState(() {
-        _dateTimeMap = _createDateTimeMap(datetimes);
-      });
+          .fetchAvailableDatetimes(widget.cabinet.id.toString());
+
+      if (mounted) {
+        setState(() {
+          _dateTimeMap = _createDateTimeMap(datetimes);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading available datetimes: $e');
-      Flushbar(
-        message: 'Failed to load available times. Please try again later.',
-        duration: Duration(seconds: 3),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
-        borderRadius: BorderRadius.circular(8),
-        backgroundColor: Colors.red,
-        flushbarPosition: FlushbarPosition.TOP,
-      ).show(context);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Flushbar(
+          message: 'Failed to load available times. Please try again later.',
+          duration: Duration(seconds: 3),
+          margin: EdgeInsets.all(8),
+          borderRadius: BorderRadius.circular(8),
+          backgroundColor: Colors.red,
+          flushbarPosition: FlushbarPosition.TOP,
+        ).show(context);
+      }
     }
   }
 
@@ -64,6 +76,9 @@ class _BookingDialogState extends State<BookingDialog> {
   }
 
   bool _isDateEnabled(DateTime day) {
+    if (day.isBefore(DateTime.now().subtract(Duration(days: 1)))) {
+      return false;
+    }
     final normalizedDay = DateTime(day.year, day.month, day.day);
     return _dateTimeMap.containsKey(normalizedDay);
   }
@@ -71,7 +86,7 @@ class _BookingDialogState extends State<BookingDialog> {
   Widget _buildCalendar() {
     return TableCalendar(
       firstDay: DateTime.now(),
-      lastDay: DateTime.now().add(Duration(days: 365)),
+      lastDay: DateTime.now().add(Duration(days: 90)),
       focusedDay: _selectedDate ?? DateTime.now(),
       selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
       enabledDayPredicate: _isDateEnabled,
@@ -81,7 +96,17 @@ class _BookingDialogState extends State<BookingDialog> {
           _selectedTime = null;
         });
       },
-      calendarStyle: CalendarStyle(outsideDaysVisible: false),
+      calendarStyle: CalendarStyle(
+        outsideDaysVisible: false,
+        selectedDecoration: BoxDecoration(
+          color: Colors.teal,
+          shape: BoxShape.circle,
+        ),
+        todayDecoration: BoxDecoration(
+          color: Colors.teal.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+      ),
       headerStyle: HeaderStyle(
         formatButtonVisible: false,
         titleCentered: true,
@@ -91,12 +116,27 @@ class _BookingDialogState extends State<BookingDialog> {
 
   Widget _buildTimeDropdown() {
     if (_selectedDate == null) return SizedBox.shrink();
+
     final date =
         DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
     final times = _dateTimeMap[date] ?? [];
-    return DropdownButton<String>(
-      isExpanded: true,
-      hint: Text('Select time'),
+
+    if (times.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(8),
+        child: Text(
+          'No available times for selected date',
+          style: TextStyle(color: Colors.grey),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: 'Select time',
+        border: OutlineInputBorder(),
+      ),
       value: _selectedTime,
       items: times
           .map((time) => DropdownMenuItem(
@@ -111,11 +151,23 @@ class _BookingDialogState extends State<BookingDialog> {
   Future<void> _handleBookingConfirmation() async {
     if (_selectedDate == null || _selectedTime == null) {
       Flushbar(
-        message: 'Please select a date and time before confirming.',
+        message: 'Please select a date and time',
         duration: Duration(seconds: 3),
-        margin: EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+        margin: EdgeInsets.all(8),
         borderRadius: BorderRadius.circular(8),
         backgroundColor: Colors.orange,
+        flushbarPosition: FlushbarPosition.TOP,
+      ).show(context);
+      return;
+    }
+
+    if (UserProvider.user == null) {
+      Flushbar(
+        message: 'Please login to make a reservation',
+        duration: Duration(seconds: 3),
+        margin: EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(8),
+        backgroundColor: Colors.red,
         flushbarPosition: FlushbarPosition.TOP,
       ).show(context);
       return;
@@ -124,11 +176,6 @@ class _BookingDialogState extends State<BookingDialog> {
     setState(() => _isLoading = true);
 
     try {
-      // Vérifier si l'utilisateur est connecté via UserProvider
-      if (UserProvider.user == null) {
-        throw Exception('Please login first');
-      }
-
       final dateTime = DateTime(
         _selectedDate!.year,
         _selectedDate!.month,
@@ -146,21 +193,23 @@ class _BookingDialogState extends State<BookingDialog> {
       if (!mounted) return;
 
       Navigator.pop(context);
+
       Flushbar(
-        message: success
-            ? 'Booking confirmed!'
-            : 'Failed to book. Please try again.',
+        message:
+            success ? 'Reservation confirmed!' : 'Failed to make reservation',
         duration: Duration(seconds: 3),
+        margin: EdgeInsets.all(8),
+        borderRadius: BorderRadius.circular(8),
         backgroundColor: success ? Colors.green : Colors.red,
         flushbarPosition: FlushbarPosition.TOP,
       ).show(context);
     } catch (e) {
-      print('Error during booking confirmation: $e');
       if (mounted) {
-        Navigator.pop(context);
         Flushbar(
-          message: 'Please login to make a reservation',
+          message: 'Error: $e',
           duration: Duration(seconds: 3),
+          margin: EdgeInsets.all(8),
+          borderRadius: BorderRadius.circular(8),
           backgroundColor: Colors.red,
           flushbarPosition: FlushbarPosition.TOP,
         ).show(context);
@@ -175,7 +224,7 @@ class _BookingDialogState extends State<BookingDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -185,25 +234,41 @@ class _BookingDialogState extends State<BookingDialog> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             SizedBox(height: 16),
-            _buildCalendar(),
-            SizedBox(height: 16),
-            _buildTimeDropdown(),
             if (_isLoading)
               Center(child: CircularProgressIndicator())
-            else
-              OverflowBar(
+            else ...[
+              _buildCalendar(),
+              SizedBox(height: 16),
+              _buildTimeDropdown(),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: Text('Cancel'),
                   ),
-                  if (_selectedDate != null && _selectedTime != null)
-                    TextButton(
-                      onPressed: _handleBookingConfirmation,
-                      child: Text('Confirm'),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _handleBookingConfirmation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
                     ),
+                    child: _isLoading
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text('Confirm'),
+                  ),
                 ],
               ),
+            ],
           ],
         ),
       ),

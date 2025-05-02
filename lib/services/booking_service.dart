@@ -27,28 +27,25 @@ class BookingService {
   }
 
   // Gestion d'erreur améliorée
-  Future<List<DateTime>> fetchAvailableDatetimes(String documentId) async {
+  Future<List<DateTime>> fetchAvailableDatetimes(String cabinetId) async {
     try {
       final headers = await _getHeaders();
       final response = await http
           .get(
-            Uri.parse('$baseUrl/available-datetimes/$documentId'),
+            Uri.parse('$baseUrl/cabinets/$cabinetId/available-times'),
             headers: headers,
           )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        final data = jsonResponse['data'] as List<dynamic>? ?? [];
-        return data
-            .map((dateStr) => DateTime.parse(dateStr.toString()))
-            .toList();
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((time) => DateTime.parse(time)).toList();
       } else {
-        throw Exception('Failed to load available datetimes: ${response.body}');
+        throw Exception('Failed to load available times: ${response.body}');
       }
     } catch (e) {
-      logger.e('Error fetching available datetimes: $e');
-      rethrow; // Propager l'erreur pour une meilleure gestion
+      logger.e('Error fetching available times: $e');
+      return [];
     }
   }
 
@@ -80,7 +77,7 @@ class BookingService {
           )
           .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 201) {
         return true;
       } else {
         logger.e('Reservation failed with status: ${response.statusCode}');
@@ -104,23 +101,24 @@ class BookingService {
       final response = await http
           .get(
             Uri.parse(
-                '$baseUrl/reservations?populate=cabinet&filters[user][id][\$eq]=$userID&page=$page&pageSize=$pageSize'),
+                '$baseUrl/reservations?filters[users_permissions_user][\$eq]=$userID&populate=*&pagination[page]=$page&pagination[pageSize]=$pageSize'),
             headers: headers,
           )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        return {
-          "data": jsonResponse['data'] as List<dynamic>,
-          "meta": jsonResponse['meta'] as Map<String, dynamic>,
-        };
+        return json.decode(response.body);
       } else {
         throw Exception('Error fetching bookings: ${response.body}');
       }
     } catch (e) {
       logger.e('Error fetching bookings: $e');
-      return {"data": [], "meta": {}};
+      return {
+        'data': [],
+        'meta': {
+          'pagination': {'page': 1, 'pageCount': 1}
+        }
+      };
     }
   }
 
