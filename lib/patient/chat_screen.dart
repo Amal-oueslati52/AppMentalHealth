@@ -11,31 +11,67 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  // Contrôleur pour gérer l'entrée de texte de l'utilisateur
   final TextEditingController _messageController = TextEditingController();
-
-  // Instance du service de chat pour gérer l'envoi et la réception des messages
   final ChatService _chatService = ChatService();
-
-  // Indicateur de chargement pour afficher une animation lorsque le chatbot répond
-  bool _isLoading = false;
-
-  // Liste des messages envoyés et reçus sous forme de Map {'role': 'user' ou 'assistant', 'content': 'message'}
   final List<Message> _messages = [];
-
-  // Contrôleur de défilement pour faire défiler automatiquement la liste des messages
+  bool _isLoading = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
-  void dispose() {
-    _messageController
-        .dispose(); // Libération des ressources du contrôleur de texte
-    _scrollController
-        .dispose(); // Libération des ressources du contrôleur de défilement
-    super.dispose();
+  void initState() {
+    super.initState();
+    _startChat();
   }
 
-  // Fonction pour faire défiler automatiquement la liste des messages vers le bas
+  Future<void> _startChat() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await _chatService.sendMessage([
+        Message(
+            content:
+                "Bonjour, je suis votre assistant de l'application de suivi de la santé mentale. Je suis là pour vous écouter et vous accompagner. Comment puis-je vous aider aujourd'hui?",
+            isUser: false)
+      ]);
+      setState(() {
+        _messages.add(Message(content: response, isUser: false));
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error starting chat: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _sendMessage() async {
+    if (_messageController.text.isEmpty) return;
+
+    final userMessage = _messageController.text;
+    _messageController.clear();
+
+    setState(() {
+      _messages.add(Message(content: userMessage, isUser: true));
+      _isLoading = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await _chatService.sendMessage(_messages);
+      setState(() {
+        _messages.add(Message(content: response, isUser: false));
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      setState(() {
+        _messages.add(Message(
+          content: 'Error: Unable to get response: $e',
+          isUser: false,
+        ));
+        _isLoading = false;
+      });
+    }
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -48,46 +84,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // Fonction pour envoyer un message
-  void _sendMessage() async {
-    if (_messageController.text.isEmpty)
-      return; // Vérifie si le champ de texte est vide
-
-    final userMessage =
-        _messageController.text; // Récupère le message de l'utilisateur
-    _messageController.clear(); // Vide le champ de texte après l'envoi
-
-    // Ajoute le message de l'utilisateur à la liste et affiche l'indicateur de chargement
-    setState(() {
-      _messages.add(Message(content: userMessage, isUser: true));
-      _isLoading = true;
-    });
-    _scrollToBottom();
-
-    try {
-      // Envoie le message au service et récupère la réponse
-      final response = await _chatService.sendMessage(_messages);
-
-      // Ajoute la réponse du chatbot à la liste des messages
-      setState(() {
-        _messages.add(Message(content: response, isUser: false));
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    } catch (e) {
-      // Affiche une alerte en cas d'erreur
-      setState(() {
-        _messages.add(Message(
-          content: 'Error: Unable to get response : $e',
-          isUser: false,
-        ));
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    }
-  }
-
-  // Fonction pour construire une bulle de message
   Widget _buildMessageBubble(Message message) {
     return Align(
       alignment:
@@ -120,49 +116,41 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mental Health Chatbot'),
-      backgroundColor: const Color.fromARGB(146, 173, 67, 177), // Couleur de la barre d'application
+        title: Text('Assistant Psychologique'),
+        backgroundColor: const Color.fromARGB(146, 173, 67, 177),
       ),
       body: Column(
         children: [
-          // Affichage des messages sous forme de liste déroulante
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(8.0),
-              itemCount: _messages.length, // Nombre total de messages
+              itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message =
-                    _messages[index]; // Récupération du message actuel
+                final message = _messages[index];
                 return _buildMessageBubble(message);
               },
             ),
           ),
-          // Affichage d'un indicateur de chargement si une réponse est en attente
           if (_isLoading) const LinearProgressIndicator(),
-
-          // Zone de saisie et bouton d'envoi
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                // Champ de saisie pour le message de l'utilisateur
                 Expanded(
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type your message...', // Texte indicatif
+                      hintText: 'Type your message...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[200], // Fond gris clair
+                      fillColor: Colors.grey[200],
                     ),
-                    onSubmitted: (_) =>
-                        _sendMessage(), // Envoi du message avec "Entrée"
+                    onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                // Bouton d'envoi du message
                 IconButton(
                   icon: const Icon(Icons.send, color: Colors.teal),
                   onPressed: _sendMessage,

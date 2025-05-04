@@ -420,8 +420,46 @@ class AuthService {
   }
 
   Future<String?> getAuthToken() async {
-    _logger.d('Retrieving auth token');
-    return _storage.getAuthToken();
+    try {
+      _logger.d('Retrieving auth token');
+      final token = await _storage.getAuthToken();
+
+      if (token == null) {
+        _logger.w('No token found in storage');
+        return null;
+      }
+
+      // Validation du token
+      try {
+        final parts = token.split('.');
+        if (parts.length != 3) {
+          _logger.w('Invalid token format');
+          await _storage.clearAll();
+          return null;
+        }
+
+        final payload = json.decode(
+            utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+
+        final expiry =
+            DateTime.fromMillisecondsSinceEpoch(payload['exp'] * 1000);
+        if (expiry.isBefore(DateTime.now())) {
+          _logger.w('Token expired');
+          await _storage.clearAll();
+          return null;
+        }
+
+        _logger.i('Valid token found');
+        return token;
+      } catch (e) {
+        _logger.e('Error validating token: $e');
+        await _storage.clearAll();
+        return null;
+      }
+    } catch (e) {
+      _logger.e('Error retrieving token: $e');
+      return null;
+    }
   }
 
   Future<void> _saveUserData(Map<String, dynamic> data) async {

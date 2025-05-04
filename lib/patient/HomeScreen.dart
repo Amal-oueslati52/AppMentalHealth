@@ -3,6 +3,7 @@ import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'ProfileScreen.dart'; // Importez vos écrans
 import 'chat_screen.dart';
 import 'map_screen.dart'; // Importez votre écran de carte
+import '../screens/assessment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -140,6 +141,30 @@ class HomeContent extends StatelessWidget {
               'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui!',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16.0, color: Colors.white),
+            ),
+            const SizedBox(height: 30.0),
+            ElevatedButton.icon(
+              icon: Icon(Icons.psychology, color: Colors.deepPurple),
+              label: Text(
+                'Suivie de la santé mentale',
+                style: TextStyle(color: Colors.deepPurple),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 5,
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AssessmentScreen(),
+                  ),
+                );
+              },
             ),
           ],
         ),

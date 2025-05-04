@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:logger/logger.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/doctor_cabinet_service.dart';
 import '../services/strapi_auth_service.dart';
 import '../user_provider.dart';
@@ -20,9 +21,45 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
   final DoctorCabinetService _cabinetService = DoctorCabinetService();
   final AuthService _authService = AuthService();
   final Logger _logger = Logger();
+  final MapController _mapController = MapController();
 
   LatLng? _selectedLocation;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _getCurrentLocation();
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLoading = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _selectedLocation = LatLng(position.latitude, position.longitude);
+        _mapController.move(_selectedLocation!, 15.0);
+      });
+    } catch (e) {
+      _logger.e('Error getting location: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur de localisation: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _selectTime(BuildContext context, bool isOpenTime) async {
     final TimeOfDay? picked = await showTimePicker(
@@ -60,16 +97,15 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
         throw Exception('Veuillez vous connecter d\'abord');
       }
 
-      // Get the complete user data to access the doctor profile ID
       final userData = await _authService.getCompleteUserData();
       _logger.d('User data received: ${userData.doctor}');
 
-      final doctorId = userData.doctorId;
-      if (doctorId == null) {
-        throw Exception('Profil docteur non trouvé');
+      // Utiliser le documentId du docteur au lieu de l'id
+      final doctorDocumentId = userData.doctor?['documentId'];
+      if (doctorDocumentId == null) {
+        throw Exception('DocumentId du docteur non trouvé');
       }
 
-      // Format opening and closing times to match expected format
       final openingTime = "${_openTimeController.text}:00.000";
       final closingTime = "${_closeTimeController.text}:00.000";
 
@@ -80,7 +116,7 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
         closeTime: closingTime,
         latitude: _selectedLocation!.latitude,
         longitude: _selectedLocation!.longitude,
-        doctorId: doctorId,
+        doctorId: doctorDocumentId, // Passage du documentId
       );
 
       if (mounted) {
@@ -106,6 +142,12 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
       appBar: AppBar(
         title: Text('Créer un Cabinet'),
         backgroundColor: Colors.teal,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.my_location),
+            onPressed: _getCurrentLocation,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -169,35 +211,49 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
               SizedBox(height: 16),
               Container(
                 height: 300,
-                child: FlutterMap(
-                  options: MapOptions(
-                    center: LatLng(36.8, 10.173),
-                    zoom: 13.0,
-                    onTap: (tapPosition, point) {
-                      setState(() => _selectedLocation = point);
-                    },
-                  ),
+                child: Stack(
                   children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: ['a', 'b', 'c'],
-                    ),
-                    if (_selectedLocation != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _selectedLocation!,
-                            width: 80,
-                            height: 80,
-                            builder: (context) => Icon(
-                              Icons.location_on,
-                              color: Colors.red,
-                              size: 40,
-                            ),
-                          ),
-                        ],
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: MapOptions(
+                        center: _selectedLocation ?? LatLng(36.8, 10.173),
+                        zoom: 13.0,
+                        onTap: (tapPosition, point) {
+                          setState(() => _selectedLocation = point);
+                        },
                       ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          subdomains: ['a', 'b', 'c'],
+                        ),
+                        if (_selectedLocation != null)
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _selectedLocation!,
+                                width: 80,
+                                height: 80,
+                                builder: (context) => Icon(
+                                  Icons.location_on,
+                                  color: Colors.red,
+                                  size: 40,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: FloatingActionButton(
+                        onPressed: _getCurrentLocation,
+                        child: Icon(Icons.my_location),
+                        backgroundColor: Colors.teal,
+                      ),
+                    ),
                   ],
                 ),
               ),

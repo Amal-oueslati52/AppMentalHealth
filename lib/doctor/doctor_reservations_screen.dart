@@ -53,23 +53,38 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
   }
 
   Future<void> _updateReservationStatus(
-      String reservationId, String newStatus) async {
+      String reservationDocumentId, String newStatus) async {
     try {
+      print('🔄 Updating reservation: $reservationDocumentId to $newStatus');
+
       final success = await _cabinetService.updateReservationStatus(
-          reservationId, newStatus);
+        reservationDocumentId,
+        newStatus,
+      );
+
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Statut mis à jour avec succès')),
+          SnackBar(
+            content: Text('Statut mis à jour avec succès'),
+            backgroundColor: Colors.green,
+          ),
         );
-        _loadReservations();
+        await _loadReservations(); // Reload the list
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la mise à jour du statut')),
+          SnackBar(
+            content: Text('Erreur lors de la mise à jour du statut'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
+      print('Error updating status: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -77,13 +92,25 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
   String _getStatusColor(String status) {
     switch (status.toUpperCase()) {
       case 'CONFIRMED':
-        return '#4CAF50'; // Green
+        return '#4CAF50'; // Vert
+      case 'REJECTED':
+        return '#F44336'; // Rouge
       case 'PENDING':
         return '#FFA726'; // Orange
-      case 'CANCELED':
-        return '#F44336'; // Red
       default:
-        return '#9E9E9E'; // Grey
+        return '#9E9E9E';
+    }
+  }
+
+  DateTime _parseDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) {
+      return DateTime.now();
+    }
+    try {
+      return DateTime.parse(dateStr);
+    } catch (e) {
+      print('❌ Error parsing date: $dateStr');
+      return DateTime.now();
     }
   }
 
@@ -105,23 +132,37 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                         children: [
                           Icon(
                             Icons.calendar_today,
-                            size: 64,
-                            color: Colors.grey,
+                            size: 80,
+                            color: Colors.grey[400],
                           ),
                           SizedBox(height: 16),
                           Text(
-                            'Aucune réservation trouvée',
+                            'Pas de réservations',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 20,
                               color: Colors.grey[600],
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                           SizedBox(height: 8),
-                          Text(
-                            'Tirez vers le bas pour actualiser',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              'Ce cabinet n\'a pas encore reçu de réservations',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                          TextButton.icon(
+                            onPressed: _loadReservations,
+                            icon: Icon(Icons.refresh),
+                            label: Text('Rafraîchir'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.teal,
                             ),
                           ),
                         ],
@@ -131,9 +172,9 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                       itemCount: _reservations.length,
                       itemBuilder: (context, index) {
                         final reservation = _reservations[index];
-                        final date = reservation['date'] != null
-                            ? DateTime.parse(reservation['date'])
-                            : DateTime.now();
+                        final documentId =
+                            reservation['documentId']?.toString() ?? '';
+                        final date = _parseDate(reservation['date']);
                         final status = reservation['state'] ?? 'PENDING';
                         final user =
                             reservation['users_permissions_user'] ?? {};
@@ -175,8 +216,9 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                             ),
                             trailing: PopupMenuButton<String>(
                               onSelected: (String choice) {
-                                _updateReservationStatus(
-                                    reservation['id'].toString(), choice);
+                                if (documentId.isNotEmpty) {
+                                  _updateReservationStatus(documentId, choice);
+                                }
                               },
                               itemBuilder: (BuildContext context) => [
                                 PopupMenuItem<String>(
@@ -184,8 +226,8 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                                   child: Text('Confirmer'),
                                 ),
                                 PopupMenuItem<String>(
-                                  value: 'CANCELED',
-                                  child: Text('Annuler'),
+                                  value: 'REJECTED',
+                                  child: Text('Rejeter'),
                                 ),
                               ],
                             ),

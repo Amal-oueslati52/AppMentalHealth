@@ -24,6 +24,35 @@ class DoctorCabinetService {
     };
   }
 
+  String _formatTimeForAPI(String time) {
+    try {
+      // Si le format est déjà HH:mm:ss.000, le retourner tel quel
+      if (RegExp(r'^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}$')
+          .hasMatch(time)) {
+        return time;
+      }
+
+      // Si le format est HH:mm, le convertir en HH:mm:ss.000
+      if (RegExp(r'^([0-1][0-9]|2[0-3]):([0-5][0-9])$').hasMatch(time)) {
+        return '$time:00.000';
+      }
+
+      // Extraire HH:mm de HH:mm:ss
+      if (RegExp(r'^([0-1][0-9]|2[0-3]):([0-5][0-9]):[0-5][0-9]$')
+          .hasMatch(time)) {
+        return '$time.000';
+      }
+
+      print('❌ Format invalide reçu: $time');
+      throw Exception(
+          'Format d\'heure invalide. Utilisez HH:mm (exemple: 09:30)');
+    } catch (e) {
+      print('❌ Erreur de formatage: $e');
+      throw Exception(
+          'Format d\'heure invalide. Utilisez HH:mm (exemple: 09:30)');
+    }
+  }
+
   Future<Cabinet> createCabinet({
     required String title,
     required String description,
@@ -31,37 +60,46 @@ class DoctorCabinetService {
     required String closeTime,
     required double latitude,
     required double longitude,
-    required String doctorId,
+    required String doctorId, // Maintenant ceci sera le documentId
   }) async {
     try {
-      // Validate time format
-      final timeRegex =
-          RegExp(r'^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}$');
+      print('📝 Times reçus - Open: $openTime, Close: $closeTime');
 
-      if (!timeRegex.hasMatch(openTime) || !timeRegex.hasMatch(closeTime)) {
-        throw Exception('Invalid time format, expected HH:mm:ss.SSS');
-      }
+      final formattedOpenTime = _formatTimeForAPI(openTime);
+      final formattedCloseTime = _formatTimeForAPI(closeTime);
+
+      print(
+          '✅ Times formatés - Open: $formattedOpenTime, Close: $formattedCloseTime');
 
       final headers = await _getHeaders();
+
+      print('👨‍⚕️ Creating cabinet for doctor DocumentID: $doctorId');
+
+      // Structure Strapi v4 correcte pour la relation bidirectionnelle
       final body = json.encode({
         'data': {
           'title': title,
           'description': description,
-          'openTime': openTime,
-          'closeTime': closeTime,
+          'openTime': formattedOpenTime,
+          'closeTime': formattedCloseTime,
           'adress': {
             'latitude': latitude,
             'longitude': longitude,
           },
-          'doctor': doctorId, // Simple ID reference for Strapi v4
+          'doctor': doctorId // Utilisation directe du documentId
         }
       });
+
+      print('📤 Envoi de la requête avec body: $body');
 
       final response = await http.post(
         Uri.parse('$baseUrl/cabinets'),
         headers: headers,
         body: body,
       );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body)['data'];
@@ -90,15 +128,27 @@ class DoctorCabinetService {
   Future<List<Cabinet>> getDoctorCabinets(String doctorId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse(
-            '$baseUrl/cabinets?filters[doctor][\$eq]=$doctorId&populate=*'),
-        headers: headers,
-      );
+      print(
+          '🔍 Tentative de récupération des cabinets pour le docteur: $doctorId');
+
+      // Modification de la requête pour le filtre
+      final url = Uri.parse('$baseUrl/cabinets').replace(queryParameters: {
+        'populate': '*',
+        'filters[doctor]': doctorId, // Simplification du filtre
+      });
+
+      print('🔗 URL de requête: $url');
+
+      final response = await http.get(url, headers: headers);
+
+      print('📊 Status de la réponse: ${response.statusCode}');
+      print('📊 Contenu de la réponse: ${response.body}');
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body)['data'] as List;
-        return data.map((cabinet) {
+        final responseData = json.decode(response.body);
+        final data = responseData['data'] as List;
+
+        final cabinets = data.map((cabinet) {
           final attributes = cabinet['attributes'] ?? {};
           final adress = attributes['adress'] ?? {};
           return Cabinet(
@@ -111,11 +161,17 @@ class DoctorCabinetService {
             closeTime: attributes['closeTime'],
           );
         }).toList();
+
+        print('✅ Nombre de cabinets trouvés: ${cabinets.length}');
+        return cabinets;
       } else {
-        throw Exception('Failed to load doctor cabinets');
+        print('❌ Erreur ${response.statusCode}: ${response.body}');
+        throw Exception(
+            'Failed to load doctor cabinets: ${response.statusCode}');
       }
-    } catch (e) {
-      logger.e('Error fetching doctor cabinets: $e');
+    } catch (e, stackTrace) {
+      print('❌ Exception lors de la récupération des cabinets: $e');
+      print('🔍 Stack trace: $stackTrace');
       return [];
     }
   }
@@ -128,23 +184,20 @@ class DoctorCabinetService {
 
       print('🔍 Fetching reservations for cabinet: $cabinetId');
 
-      // Correction de la requête Strapi v4
-      final url = Uri.parse('$baseUrl/reservations?populate=*&' +
-              'filters[cabinet][id][\$eq]=$cabinetId&' +
-              'sort[0]=date:desc')
-          .toString();
-
-      print('🔗 Request URL: $url');
+      final url = Uri.parse('$baseUrl/reservations').replace(queryParameters: {
+        'populate': '*',
+        'filters[cabinet][id][\$eq]': cabinetId,
+        'sort[0]': 'date:desc'
+      });
 
       final response = await http.get(
-        Uri.parse(url),
+        url,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
 
-      print('📊 Response status: ${response.statusCode}');
       print('📊 Response body: ${response.body}');
 
       if (response.statusCode != 200) {
@@ -161,8 +214,10 @@ class DoctorCabinetService {
 
         return {
           'id': item['id'],
+          'documentId': attributes['documentId'] ?? '', // Ajout du documentId
           'date': attributes['date'],
-          'state': attributes['state'],
+          'state':
+              attributes['state'] ?? 'PENDING', // Valeur par défaut si null
           'users_permissions_user': {
             'username': userData['username'] ?? userData['email'] ?? 'Inconnu',
             'email': userData['email'] ?? '',
@@ -170,36 +225,47 @@ class DoctorCabinetService {
         };
       }).toList();
 
-      print('📋 Parsed ${reservations.length} reservations');
+      print('📋 Parsed reservations: $reservations');
       return reservations;
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('❌ Error in getCabinetReservations: $e');
-      print('🔍 Stack trace: $stackTrace');
       rethrow;
     }
   }
 
   Future<bool> updateReservationStatus(
-      String reservationId, String newStatus) async {
+      String reservationDocumentId, String newStatus) async {
     try {
       final token = await _authService.getAuthToken();
       if (token == null) throw Exception('No authentication token found');
 
+      print('📝 Updating reservation: $reservationDocumentId to $newStatus');
+
+      // Structure correcte pour la mise à jour dans Strapi v4
+      final body = json.encode({
+        'data': {'state': newStatus}
+      });
+
       final response = await http.put(
-        Uri.parse('$baseUrl/reservations/$reservationId'),
+        Uri.parse('$baseUrl/reservations/$reservationDocumentId'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: json.encode({
-          'data': {
-            'state': newStatus,
-          }
-        }),
+        body: body,
       );
 
-      return response.statusCode == 200;
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to update reservation status: ${response.body}');
+      }
+
+      return true;
     } catch (e) {
+      print('❌ Error updating reservation status: $e');
       throw Exception('Error updating reservation status: $e');
     }
   }
