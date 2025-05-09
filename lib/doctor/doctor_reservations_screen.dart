@@ -53,39 +53,55 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
   }
 
   Future<void> _updateReservationStatus(
-      String reservationDocumentId, String newStatus) async {
+      String reservationId, String newStatus) async {
     try {
-      print('🔄 Updating reservation: $reservationDocumentId to $newStatus');
+      setState(() => _isLoading = true);
+
+      // Trouver le documentId dans les réservations actuelles
+      final reservation = _reservations.firstWhere(
+        (r) => r['id'].toString() == reservationId,
+      );
+
+      print('📄 Found reservation: $reservation');
+      final documentId = reservation['documentId'];
+      print('🔑 DocumentId: $documentId');
+
+      if (documentId == null || documentId.isEmpty) {
+        throw Exception('Reservation documentId not found');
+      }
 
       final success = await _cabinetService.updateReservationStatus(
-        reservationDocumentId,
+        documentId,
         newStatus,
       );
 
+      if (!mounted) return;
+
       if (success) {
+        await _loadReservations();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Statut mis à jour avec succès'),
             backgroundColor: Colors.green,
           ),
         );
-        await _loadReservations(); // Reload the list
       } else {
+        throw Exception('Failed to update reservation status');
+      }
+    } catch (e) {
+      print('❌ Error updating status: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la mise à jour du statut'),
+            content: Text('Erreur: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } catch (e) {
-      print('Error updating status: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -216,8 +232,11 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                             ),
                             trailing: PopupMenuButton<String>(
                               onSelected: (String choice) {
-                                if (documentId.isNotEmpty) {
-                                  _updateReservationStatus(documentId, choice);
+                                final reservationId =
+                                    reservation['id']?.toString();
+                                if (reservationId != null) {
+                                  _updateReservationStatus(
+                                      reservationId, choice);
                                 }
                               },
                               itemBuilder: (BuildContext context) => [

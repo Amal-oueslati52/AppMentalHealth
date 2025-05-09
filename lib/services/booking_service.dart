@@ -3,53 +3,108 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logger/logger.dart';
-import 'package:app/services/strapi_auth_service.dart';
+import 'strapi_auth_service.dart';
 
 class BookingService {
-  final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.1.11:1337/api'
+      ? 'http://192.168.0.5:1337/api'
       : 'http://localhost:1337/api';
 
   final Logger logger = Logger();
+  final AuthService _authService = AuthService();
 
   // Centralisation des en-têtes avec gestion améliorée du token
   Future<Map<String, String>> _getHeaders() async {
-    final token = await _authService.getAuthToken();
-    if (token == null) {
-      throw Exception('User not logged in');
-    }
+    try {
+      final token = await _authService.getAuthToken();
+      if (token == null) {
+        print('⚠️ No auth token found');
+        throw Exception('Authentication required');
+      }
 
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+    } catch (e) {
+      print('❌ Error getting headers: $e');
+      throw Exception('Authentication failed: $e');
+    }
   }
 
-  // Gestion d'erreur améliorée
+  // Récupérer les créneaux disponibles
   Future<List<DateTime>> fetchAvailableDatetimes(String cabinetId) async {
     try {
       final headers = await _getHeaders();
+      print('🔍 Fetching cabinet details and available times');
+
+      // Get cabinet details with its documentId
+      final url = Uri.parse('$baseUrl/cabinets').replace(
+        queryParameters: {'filters[id][\$eq]': cabinetId, 'populate': '*'},
+      );
+
+      print('🔗 Fetching cabinet URL: $url');
+      final cabinetResponse = await http.get(url, headers: headers);
+      print('📥 Cabinet response: ${cabinetResponse.body}');
+
+      if (cabinetResponse.statusCode != 200) {
+        print('❌ Failed to fetch cabinet: ${cabinetResponse.body}');
+        return [];
+      }
+
+      final responseData = json.decode(cabinetResponse.body);
+      if (responseData['data'] == null || responseData['data'].isEmpty) {
+        print('❌ No cabinet found with ID: $cabinetId');
+        return [];
+      }
+
+      final cabinetData = responseData['data'][0];
+      final documentId = cabinetData['documentId'];
+
+      if (documentId == null) {
+        print('❌ Cabinet has no documentId');
+        return [];
+      }
+
+      print('📝 Found cabinet documentId: $documentId');
+
+      // Now fetch available times using documentId
+      final timesUrl = Uri.parse('$baseUrl/available-datetimes/$documentId');
+      print('🔗 Fetching times URL: $timesUrl');
+
       final response = await http
           .get(
-            Uri.parse('$baseUrl/cabinets/$cabinetId/available-times'),
+            timesUrl,
             headers: headers,
           )
           .timeout(const Duration(seconds: 10));
 
+      print('📥 Times response status: ${response.statusCode}');
+      print('📥 Times response body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((time) => DateTime.parse(time)).toList();
-      } else {
-        throw Exception('Failed to load available times: ${response.body}');
+        final jsonResponse = json.decode(response.body);
+        final List<dynamic> slots = jsonResponse['data'] as List<dynamic>;
+
+        final availableSlots = slots
+            .map((dateStr) => DateTime.tryParse(dateStr.toString()))
+            .where((date) => date != null)
+            .cast<DateTime>()
+            .toList();
+
+        print('✅ Found ${availableSlots.length} available slots');
+        return availableSlots;
       }
+
+      print('❌ Failed to fetch available times: ${response.body}');
+      return [];
     } catch (e) {
-      logger.e('Error fetching available times: $e');
+      print('❌ Error fetching available times: $e');
       return [];
     }
   }
 
-  // Créer une réservation
+  // Créer une réservation avec la bonne structure pour Strapi v4
   Future<bool> createReservation({
     required String userID,
     required int cabinetId,
@@ -57,17 +112,17 @@ class BookingService {
   }) async {
     try {
       final headers = await _getHeaders();
-      // Structure correcte pour Strapi
+      print(
+          '📝 Creating reservation - Cabinet: $cabinetId, User: $userID, DateTime: ${dateTime.toIso8601String()}');
+
       final body = json.encode({
         'data': {
           'date': dateTime.toUtc().toIso8601String(),
-          'users_permissions_user': userID,
           'cabinet': cabinetId,
+          'users_permissions_user': userID,
           'state': 'PENDING'
         }
       });
-
-      logger.i('Creating reservation with body: $body');
 
       final response = await http
           .post(
@@ -78,19 +133,19 @@ class BookingService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 201) {
+        print('✅ Reservation created successfully');
         return true;
-      } else {
-        logger.e('Reservation failed with status: ${response.statusCode}');
-        logger.e('Response body: ${response.body}');
-        throw Exception('Error creating reservation: ${response.body}');
       }
+
+      print('❌ Failed to create reservation: ${response.body}');
+      return false;
     } catch (e) {
-      logger.e('Error creating reservation: $e');
+      print('❌ Error creating reservation: $e');
       return false;
     }
   }
 
-  // Récupérer les réservations d'un utilisateur avec pagination
+  // Récupérer les réservations de l'utilisateur
   Future<Map<String, dynamic>> fetchUserBookings({
     required String userID,
     int page = 1,
@@ -98,25 +153,36 @@ class BookingService {
   }) async {
     try {
       final headers = await _getHeaders();
+
+      final url = Uri.parse('$baseUrl/reservations').replace(queryParameters: {
+        'populate': '*',
+        'filters[users_permissions_user][id][\$eq]': userID,
+        'pagination[page]': page.toString(),
+        'pagination[pageSize]': pageSize.toString(),
+        'sort[0]': 'date:desc'
+      });
+
+      print('🔍 Fetching bookings URL: $url');
+
       final response = await http
-          .get(
-            Uri.parse(
-                '$baseUrl/reservations?filters[users_permissions_user][\$eq]=$userID&populate=*&pagination[page]=$page&pagination[pageSize]=$pageSize'),
-            headers: headers,
-          )
+          .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Error fetching bookings: ${response.body}');
+        final jsonResponse = json.decode(response.body);
+        return {
+          "data": jsonResponse['data'] ?? [],
+          "meta": jsonResponse['meta'] ?? {},
+        };
       }
+
+      throw Exception('Error fetching bookings: ${response.body}');
     } catch (e) {
-      logger.e('Error fetching bookings: $e');
+      print('❌ Error fetching bookings: $e');
       return {
-        'data': [],
-        'meta': {
-          'pagination': {'page': 1, 'pageCount': 1}
+        "data": [],
+        "meta": {
+          "pagination": {"page": 1, "pageCount": 1}
         }
       };
     }

@@ -20,16 +20,24 @@ class Cabinet {
   });
 
   factory Cabinet.fromJson(Map<String, dynamic> json) {
-    final adress = json['adress'] as Map<String, dynamic>?;
+    final attributes = json['attributes'] ?? json;
+    final address = attributes['adress'] ?? {};
+
     return Cabinet(
-      id: json['id'] ?? 0,
-      documentId: json['documentId']?.toString(),
-      title: json['title']?.toString() ?? '',
-      latitude: adress?['latitude']?.toDouble() ?? 0.0,
-      longitude: adress?['longitude']?.toDouble() ?? 0.0,
-      description: 'ID: ${json['documentId']}',
-      openTime: json['openTime']?.toString(),
-      closeTime: json['closeTime']?.toString(),
+      id: int.parse(json['id'].toString()),
+      documentId: attributes['documentId'] ?? json['documentId'] ?? '',
+      title: attributes['title']?.toString() ?? 'Sans titre',
+      description: attributes['description']?.toString(),
+      latitude: _parseDouble(address['latitude']),
+      longitude: _parseDouble(address['longitude']),
+      openTime: attributes['openTime']?.toString(),
+      closeTime: attributes['closeTime']?.toString(),
     );
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
   }
 }

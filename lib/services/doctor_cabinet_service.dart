@@ -8,7 +8,7 @@ import 'strapi_auth_service.dart';
 class DoctorCabinetService {
   final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.1.11:1337/api'
+      ? 'http://192.168.0.5:1337/api'
       : 'http://localhost:1337/api';
 
   final Logger logger = Logger();
@@ -198,7 +198,8 @@ class DoctorCabinetService {
         },
       );
 
-      print('📊 Response body: ${response.body}');
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode != 200) {
         throw Exception('Failed to fetch reservations');
@@ -214,10 +215,11 @@ class DoctorCabinetService {
 
         return {
           'id': item['id'],
-          'documentId': attributes['documentId'] ?? '', // Ajout du documentId
+          'documentId': item['documentId'] ??
+              attributes['documentId'] ??
+              '', // Try both locations
           'date': attributes['date'],
-          'state':
-              attributes['state'] ?? 'PENDING', // Valeur par défaut si null
+          'state': attributes['state'] ?? 'PENDING',
           'users_permissions_user': {
             'username': userData['username'] ?? userData['email'] ?? 'Inconnu',
             'email': userData['email'] ?? '',
@@ -225,29 +227,37 @@ class DoctorCabinetService {
         };
       }).toList();
 
-      print('📋 Parsed reservations: $reservations');
+      // Debug log
+      print(
+          '📋 Parsed reservations with documentIds: ${reservations.map((r) => '${r['id']}: ${r['documentId']}').join(', ')}');
+
       return reservations;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Error in getCabinetReservations: $e');
-      rethrow;
+      print('🔍 Stack trace: $stackTrace');
+      return [];
     }
   }
 
   Future<bool> updateReservationStatus(
-      String reservationDocumentId, String newStatus) async {
+      String documentId, String newStatus) async {
     try {
       final token = await _authService.getAuthToken();
       if (token == null) throw Exception('No authentication token found');
 
-      print('📝 Updating reservation: $reservationDocumentId to $newStatus');
+      print(
+          '📝 Updating reservation status - DocumentID: $documentId, Status: $newStatus');
 
-      // Structure correcte pour la mise à jour dans Strapi v4
+      final updateUrl = Uri.parse('$baseUrl/reservations/$documentId');
       final body = json.encode({
-        'data': {'state': newStatus}
+        'data': {'state': newStatus.toUpperCase()}
       });
 
+      print('🔗 Update URL: $updateUrl');
+      print('📤 Update body: $body');
+
       final response = await http.put(
-        Uri.parse('$baseUrl/reservations/$reservationDocumentId'),
+        updateUrl,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -259,14 +269,13 @@ class DoctorCabinetService {
       print('📥 Response body: ${response.body}');
 
       if (response.statusCode != 200) {
-        throw Exception(
-            'Failed to update reservation status: ${response.body}');
+        throw Exception('Failed to update reservation: ${response.body}');
       }
 
       return true;
     } catch (e) {
       print('❌ Error updating reservation status: $e');
-      throw Exception('Error updating reservation status: $e');
+      return false;
     }
   }
 }
