@@ -57,23 +57,21 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
     try {
       setState(() => _isLoading = true);
 
-      // Trouver le documentId dans les réservations actuelles
       final reservation = _reservations.firstWhere(
         (r) => r['id'].toString() == reservationId,
+        orElse: () => throw Exception('Reservation not found'),
       );
 
-      print('📄 Found reservation: $reservation');
       final documentId = reservation['documentId'];
-      print('🔑 DocumentId: $documentId');
+      print(
+          '📝 Updating reservation - ID: $reservationId, DocumentId: $documentId, Status: $newStatus');
 
       if (documentId == null || documentId.isEmpty) {
-        throw Exception('Reservation documentId not found');
+        throw Exception('DocumentId not found for reservation $reservationId');
       }
 
-      final success = await _cabinetService.updateReservationStatus(
-        documentId,
-        newStatus,
-      );
+      final success =
+          await _cabinetService.updateReservationStatus(documentId, newStatus);
 
       if (!mounted) return;
 
@@ -81,12 +79,11 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
         await _loadReservations();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Statut mis à jour avec succès'),
-            backgroundColor: Colors.green,
-          ),
+              content: Text('Statut mis à jour avec succès'),
+              backgroundColor: Colors.green),
         );
       } else {
-        throw Exception('Failed to update reservation status');
+        throw Exception('Failed to update status');
       }
     } catch (e) {
       print('❌ Error updating status: $e');
@@ -120,12 +117,17 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
 
   DateTime _parseDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) {
+      print('❌ Date string is null or empty');
       return DateTime.now();
     }
     try {
-      return DateTime.parse(dateStr);
+      // Parse the UTC date from Strapi and convert to local time
+      final utcDate = DateTime.parse(dateStr).toLocal();
+      print(
+          '📅 Parsed date from Strapi: $dateStr -> Local: ${utcDate.toString()}');
+      return utcDate;
     } catch (e) {
-      print('❌ Error parsing date: $dateStr');
+      print('❌ Error parsing date: $dateStr - Error: $e');
       return DateTime.now();
     }
   }
@@ -208,6 +210,10 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                               children: [
                                 Text(
                                   'Date: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
+                                  ),
                                 ),
                                 Container(
                                   padding: EdgeInsets.symmetric(

@@ -209,17 +209,22 @@ class DoctorCabinetService {
       final List<dynamic> reservationsData = responseData['data'] ?? [];
 
       final reservations = reservationsData.map((item) {
-        final attributes = item['attributes'] ?? {};
-        final userData =
-            attributes['users_permissions_user']?['data']?['attributes'] ?? {};
+        print('🔍 Processing reservation item: $item');
+
+        // The data is directly in the item, not in attributes
+        final date = item['date'];
+        final documentId = item['documentId'];
+        final state = item['state'];
+        final userData = item['users_permissions_user'] ?? {};
+
+        print('📅 Extracted date: $date');
+        print('🔑 Extracted documentId: $documentId');
 
         return {
           'id': item['id'],
-          'documentId': item['documentId'] ??
-              attributes['documentId'] ??
-              '', // Try both locations
-          'date': attributes['date'],
-          'state': attributes['state'] ?? 'PENDING',
+          'documentId': documentId ?? '',
+          'date': date,
+          'state': state ?? 'PENDING',
           'users_permissions_user': {
             'username': userData['username'] ?? userData['email'] ?? 'Inconnu',
             'email': userData['email'] ?? '',
@@ -227,10 +232,8 @@ class DoctorCabinetService {
         };
       }).toList();
 
-      // Debug log
       print(
-          '📋 Parsed reservations with documentIds: ${reservations.map((r) => '${r['id']}: ${r['documentId']}').join(', ')}');
-
+          '📋 Parsed reservations: ${reservations.map((r) => 'id: ${r['id']}, date: ${r['date']}, documentId: ${r['documentId']}').join('\n')}');
       return reservations;
     } catch (e, stackTrace) {
       print('❌ Error in getCabinetReservations: $e');
