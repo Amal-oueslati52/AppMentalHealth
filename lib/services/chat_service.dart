@@ -79,8 +79,15 @@ class ChatService {
     if (!isAssessment) {
       formattedMessages.add({
         "role": "system",
-        "content":
-            "Vous êtes un assistant de l'application de suivi de la santé mentale. Répondez toujours de manière empathique et professionnelle. Commencez toujours vos réponses par 'En tant qu'assistant de suivi de la santé mentale, ...' quand c'est approprié."
+        "content": """
+Assistant de santé mentale - Directives:
+- Répondez de manière brève et claire (2-3 phrases maximum)
+- Restez pratique et concret
+- Pour les questions complexes, suggérez de consulter un professionnel
+- Pour les urgences, dirigez vers les services d'urgence
+- Évitez tout diagnostic médical
+- Gardez un ton amical mais professionnel
+"""
       });
     }
 
@@ -145,36 +152,27 @@ class ChatService {
   // Méthode pour envoyer un message et récupérer la réponse du chatbot
   Future<String> sendMessage(List<Message> messages) async {
     try {
-      final formattedMessages = _prepareMessages(messages);
-
-      // Envoi d'une requête POST à l'API
       final response = await _dio.post(
         _baseUrl,
         options: Options(
           headers: {
-            'Content-Type': 'application/json', // Spécifie le format JSON
-            'Authorization':
-                'Bearer ${dotenv.env['GROQ_API_KEY']}', // Clé API stockée dans un fichier .env
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
           },
         ),
         data: {
-          'messages': formattedMessages, // Envoie les messages formatés
-          'model':
-              'llama-3.3-70b-versatile', // Spécifie le modèle utilisé pour la génération de texte
+          'messages': _prepareMessages(messages),
+          'model': 'llama-3.3-70b-versatile',
+          'temperature': 0.7, // Réduit pour des réponses plus concises
+          'max_tokens': 150, // Limite la longueur des réponses
         },
       );
 
-      // Utiliser l'opérateur ternaire pour vérifier le statut de la réponse
-      return response.statusCode == 200
-          ? response.data['choices'][0]['message']
-              ['content'] // Récupère la réponse du chatbot
-          : throw Exception(
-              'Failed to get response: ${response.statusCode}'); // Erreur si le statut est différent de 200
-    } on DioException catch (e) {
-      // Gestion des erreurs spécifiques à Dio (problèmes de connexion, timeout, etc.)
-      throw Exception('Dio error: ${e.message}');
+      if (response.statusCode == 200) {
+        return response.data['choices'][0]['message']['content'];
+      }
+      throw Exception('Failed to get response');
     } catch (e) {
-      // Gestion des autres erreurs
       throw Exception('Error sending message: $e');
     }
   }

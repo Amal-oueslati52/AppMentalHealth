@@ -20,26 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _startChat();
-  }
-
-  Future<void> _startChat() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await _chatService.sendMessage([
-        Message(
-            content:
-                "Bonjour, je suis votre assistant de l'application de suivi de la santé mentale. Je suis là pour vous écouter et vous accompagner. Comment puis-je vous aider aujourd'hui?",
-            isUser: false)
-      ]);
-      setState(() {
-        _messages.add(Message(content: response, isUser: false));
-        _isLoading = false;
-      });
-    } catch (e) {
-      print('❌ Error starting chat: $e');
-      setState(() => _isLoading = false);
-    }
+    // Suppression de _startChat() pour laisser le patient commencer
   }
 
   void _sendMessage() async {
@@ -85,29 +66,49 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Message message) {
-    return Align(
-      alignment:
-          (message.isUser) ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.fromLTRB(
-          message.isUser ? 64.0 : 16.0,
-          4.0,
-          message.isUser ? 16.0 : 64.0,
-          4.0,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: (message.isUser)
-              ? const Color.fromARGB(163, 121, 63, 116)
-              : Colors.grey[200],
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Text(
-          message.content,
-          style: TextStyle(
-            color: (message.isUser) ? Colors.white : Colors.black,
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Row(
+        mainAxisAlignment:
+            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!message.isUser)
+            CircleAvatar(
+              backgroundColor: Colors.teal[100],
+              child: Icon(Icons.psychology, color: Colors.teal[700]),
+            ),
+          SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: message.isUser ? Colors.teal[100] : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                message.content,
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 15,
+                ),
+              ),
+            ),
           ),
-        ),
+          SizedBox(width: 8),
+          if (message.isUser)
+            CircleAvatar(
+              backgroundColor: Colors.teal[700],
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+        ],
       ),
     );
   }
@@ -116,7 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Assistant Psychologique'),
+        title: Text('Assistant de santé mentale'),
         backgroundColor: const Color.fromARGB(146, 173, 67, 177),
       ),
       body: Column(
@@ -141,7 +142,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type your message...',
+                      hintText: 'Posez votre question...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12.0),
                       ),
