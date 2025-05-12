@@ -146,7 +146,7 @@ class HomeContent extends StatelessWidget {
             ElevatedButton.icon(
               icon: Icon(Icons.psychology, color: Colors.deepPurple),
               label: Text(
-                'Suivie de la santé mentale',
+                'Suivie de la journal',
                 style: TextStyle(color: Colors.deepPurple),
               ),
               style: ElevatedButton.styleFrom(

@@ -15,6 +15,12 @@ class DoctorReservationsScreen extends StatefulWidget {
 }
 
 class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
+  static const Map<String, String> statusColors = {
+    'CONFIRMED': '#4CAF50',
+    'REJECTED': '#F44336',
+    'PENDING': '#FFA726',
+  };
+
   final DoctorCabinetService _cabinetService = DoctorCabinetService();
   List<Map<String, dynamic>> _reservations = [];
   bool _isLoading = true;
@@ -103,33 +109,123 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
   }
 
   String _getStatusColor(String status) {
-    switch (status.toUpperCase()) {
-      case 'CONFIRMED':
-        return '#4CAF50'; // Vert
-      case 'REJECTED':
-        return '#F44336'; // Rouge
-      case 'PENDING':
-        return '#FFA726'; // Orange
-      default:
-        return '#9E9E9E';
-    }
+    return statusColors[status.toUpperCase()] ?? '#9E9E9E';
   }
 
   DateTime _parseDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) {
-      print('❌ Date string is null or empty');
       return DateTime.now();
     }
-    try {
-      // Parse the UTC date from Strapi and convert to local time
-      final utcDate = DateTime.parse(dateStr).toLocal();
-      print(
-          '📅 Parsed date from Strapi: $dateStr -> Local: ${utcDate.toString()}');
-      return utcDate;
-    } catch (e) {
-      print('❌ Error parsing date: $dateStr - Error: $e');
-      return DateTime.now();
-    }
+    return DateTime.tryParse(dateStr)?.toLocal() ?? DateTime.now();
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.calendar_today,
+            size: 80,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Pas de réservations',
+            style: TextStyle(
+              fontSize: 20,
+              color: Color(0xFF757575),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Ce cabinet n\'a pas encore reçu de réservations',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Color(0xFF9E9E9E),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          TextButton.icon(
+            onPressed: _loadReservations,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Rafraîchir'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.teal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReservationCard(Map<String, dynamic> reservation) {
+    final date = _parseDate(reservation['date']);
+    final status = reservation['state'] ?? 'PENDING';
+    final user = reservation['users_permissions_user'] ?? {};
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        title: Text(
+          'Patient: ${user['username'] ?? 'Inconnu'}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Date: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: Color(
+                  int.parse(
+                    _getStatusColor(status).replaceAll('#', '0xFF'),
+                  ),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (String choice) {
+            final reservationId = reservation['id']?.toString();
+            if (reservationId != null) {
+              _updateReservationStatus(reservationId, choice);
+            }
+          },
+          itemBuilder: (BuildContext context) => const [
+            PopupMenuItem<String>(
+              value: 'CONFIRMED',
+              child: Text('Confirmer'),
+            ),
+            PopupMenuItem<String>(
+              value: 'REJECTED',
+              child: Text('Rejeter'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -140,125 +236,15 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
         backgroundColor: Colors.teal,
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadReservations,
               child: _reservations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 80,
-                            color: Colors.grey[400],
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Pas de réservations',
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 32),
-                            child: Text(
-                              'Ce cabinet n\'a pas encore reçu de réservations',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ),
-                          SizedBox(height: 24),
-                          TextButton.icon(
-                            onPressed: _loadReservations,
-                            icon: Icon(Icons.refresh),
-                            label: Text('Rafraîchir'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.teal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
+                  ? _buildEmptyState()
                   : ListView.builder(
                       itemCount: _reservations.length,
-                      itemBuilder: (context, index) {
-                        final reservation = _reservations[index];
-                        final documentId =
-                            reservation['documentId']?.toString() ?? '';
-                        final date = _parseDate(reservation['date']);
-                        final status = reservation['state'] ?? 'PENDING';
-                        final user =
-                            reservation['users_permissions_user'] ?? {};
-
-                        return Card(
-                          margin:
-                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: ListTile(
-                            title: Text(
-                              'Patient: ${user['username'] ?? 'Inconnu'}',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Date: ${DateFormat('dd/MM/yyyy HH:mm').format(date)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Color(
-                                      int.parse(
-                                        _getStatusColor(status)
-                                            .replaceAll('#', '0xFF'),
-                                      ),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    status,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (String choice) {
-                                final reservationId =
-                                    reservation['id']?.toString();
-                                if (reservationId != null) {
-                                  _updateReservationStatus(
-                                      reservationId, choice);
-                                }
-                              },
-                              itemBuilder: (BuildContext context) => [
-                                PopupMenuItem<String>(
-                                  value: 'CONFIRMED',
-                                  child: Text('Confirmer'),
-                                ),
-                                PopupMenuItem<String>(
-                                  value: 'REJECTED',
-                                  child: Text('Rejeter'),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                      itemBuilder: (context, index) =>
+                          _buildReservationCard(_reservations[index]),
                     ),
             ),
     );

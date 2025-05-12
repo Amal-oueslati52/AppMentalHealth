@@ -24,7 +24,8 @@ class AuthService {
 
   // Utiliser la bonne URL selon la plateforme
   static const String _iosBaseUrl = 'http://127.0.0.1:1337/api';
-  static const String _androidBaseUrl = 'http://192.168.0.5:1337/api'; // Fixed URL
+  static const String _androidBaseUrl =
+      'http://192.168.0.5:1337/api'; // Fixed URL
   static final String baseUrl = Platform.isIOS ? _iosBaseUrl : _androidBaseUrl;
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -473,6 +474,56 @@ class AuthService {
     }
   }
 
+  Future<bool> updateDoctorProfile(
+      int userId, Map<String, dynamic> data) async {
+    try {
+      final token = await getAuthToken();
+      if (token == null) throw Exception('No authentication token found');
+
+      // 1. Get doctor profile
+      final findDoctorResponse = await http.get(
+        Uri.parse(
+            '$baseUrl/doctors?filters[users_permissions_user][id]=$userId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      _logger.d('Find doctor response: ${findDoctorResponse.body}');
+
+      final doctorData = json.decode(findDoctorResponse.body);
+      if (doctorData['data']?.isEmpty ?? true) {
+        throw Exception('Doctor profile not found');
+      }
+
+      final doctor = doctorData['data'][0];
+      final documentId = doctor['documentId'];
+      _logger.d('Found doctor documentId: $documentId');
+
+      // 2. Update doctor profile using documentId
+      final updateResponse = await http.put(
+        Uri.parse('$baseUrl/doctors/$documentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'data': {'speciality': data['speciality'], 'phone': data['phone']}
+        }),
+      );
+
+      _logger.d('Update URL: $baseUrl/doctors/$documentId');
+      _logger.d('Update request body: ${json.encode({
+            'data': {'speciality': data['speciality'], 'phone': data['phone']}
+          })}');
+      _logger.d('Update response: ${updateResponse.body}');
+
+      return updateResponse.statusCode >= 200 &&
+          updateResponse.statusCode < 300;
+    } catch (e) {
+      _logger.e('Error updating doctor profile: $e');
+      return false;
+    }
+  }
+
   Future<bool> isAuthenticated() async {
     _logger.d('Checking authentication status');
     return await _storage.hasValidSession();
@@ -584,6 +635,117 @@ class AuthService {
     } catch (e) {
       _logger.e('Error fetching user data: $e');
       throw Exception('Failed to fetch user data');
+    }
+  }
+
+  Future<bool> deleteAccount() async {
+    try {
+      final token = await getAuthToken();
+      if (token == null) throw Exception('No authentication token found');
+
+      final userId = UserProvider.user?.id;
+      if (userId == null) throw Exception('User ID not found');
+
+      final roleType = UserProvider.user?.roleType.toUpperCase();
+
+      if (roleType == 'DOCTOR') {
+        // 1. First find all doctor data
+        final findDoctorResponse = await http.get(
+          Uri.parse(
+              '$baseUrl/doctors?filters[users_permissions_user][id]=$userId&populate=*'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        final doctorData = json.decode(findDoctorResponse.body);
+        if (doctorData['data']?.isNotEmpty ?? false) {
+          final doctor = doctorData['data'][0];
+          final doctorDocumentId = doctor['documentId'];
+
+          // 2. Delete all reservations linked to this doctor
+          final findReservationsResponse = await http.get(
+            Uri.parse(
+                '$baseUrl/reservations?filters[doctor][id]=${doctor['id']}'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          final reservationsData = json.decode(findReservationsResponse.body);
+          for (var reservation in reservationsData['data'] ?? []) {
+            await http.delete(
+              Uri.parse('$baseUrl/reservations/${reservation['id']}'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+          }
+
+          // 3. Delete cabinet if exists
+          if (doctor['cabinet'] != null) {
+            final cabinetId = doctor['cabinet']['id'];
+            await http.delete(
+              Uri.parse('$baseUrl/cabinets/$cabinetId'),
+              headers: {'Authorization': 'Bearer $token'},
+            );
+          }
+
+          // 4. Delete doctor profile
+          final deleteDoctorResponse = await http.delete(
+            Uri.parse('$baseUrl/doctors/$doctorDocumentId'),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+
+          if (deleteDoctorResponse.statusCode >= 300) {
+            throw Exception('Failed to delete doctor profile');
+          }
+        }
+      } else {
+        // Handle patient deletion (existing code)
+        final findPatientResponse = await http.get(
+          Uri.parse(
+              '$baseUrl/patients?filters[users_permissions_user][id]=$userId'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (findPatientResponse.statusCode >= 300) {
+          throw Exception('Failed to find patient profile');
+        }
+
+        final patientData = json.decode(findPatientResponse.body);
+        if (patientData['data']?.isNotEmpty ?? false) {
+          final patient = patientData['data'][0];
+          final documentId = patient['documentId'];
+
+          // Delete patient profile using documentId
+          final deletePatientResponse = await http.delete(
+            Uri.parse('$baseUrl/patients/$documentId'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          );
+
+          _logger.d(
+              'Delete patient response: ${deletePatientResponse.statusCode}');
+          if (deletePatientResponse.statusCode >= 300) {
+            throw Exception('Failed to delete patient profile');
+          }
+        }
+      }
+
+      // Finally delete user account
+      final deleteUserResponse = await http.delete(
+        Uri.parse('$baseUrl/users/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      await _storage.clearAll();
+      UserProvider.user = null;
+
+      return deleteUserResponse.statusCode >= 200 &&
+          deleteUserResponse.statusCode < 300;
+    } catch (e) {
+      _logger.e('Error deleting account: $e');
+      return false;
     }
   }
 

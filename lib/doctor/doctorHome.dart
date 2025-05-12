@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../user_provider.dart';
 import 'doctor_cabinets_screen.dart';
+import 'doctor_profile_view.dart';
 
 class DoctorHome extends StatelessWidget {
   @override
@@ -12,6 +13,17 @@ class DoctorHome extends StatelessWidget {
         title: Text('Espace Psychologue'),
         backgroundColor: Colors.teal,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => DoctorProfileView()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -58,6 +70,20 @@ class DoctorHome extends StatelessWidget {
                 trailing: Icon(Icons.arrow_forward_ios),
                 onTap: () {
                   // TODO: Implement work hours management
+                },
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.person, color: Colors.teal),
+                title: const Text('Mon Profil'),
+                subtitle: const Text('Gérer mes informations'),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => DoctorProfileView()),
+                  );
                 },
               ),
             ),

@@ -41,7 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final user = await _authService.getCurrentUser();
       if (!mounted) return;
-      
+
       setState(() {
         _currentUser = user;
         _nameController.text = user.name;
@@ -104,23 +104,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
     final bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Logout"),
+            content: const Text("Are you sure you want to logout?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text("Logout"),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Logout"),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
 
     if (confirm && mounted) {
       try {
@@ -132,7 +133,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Widget _buildEditableField(String label, TextEditingController controller, {bool isNumeric = false}) {
+  Future<void> _deleteAccount() async {
+    final bool confirm = await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Supprimer le compte"),
+            content: const Text(
+                "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Annuler"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text("Supprimer"),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (confirm && mounted) {
+      setState(() => _isLoading = true);
+      try {
+        final success = await _authService.deleteAccount();
+        if (success && mounted) {
+          await _authService.logout(context);
+        } else {
+          throw Exception('Failed to delete account');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        showToast(message: "Erreur lors de la suppression du compte : $e");
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
+  Widget _buildEditableField(String label, TextEditingController controller,
+      {bool isNumeric = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextField(
@@ -144,10 +188,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           border: const OutlineInputBorder(),
           filled: true,
           fillColor: Colors.white.withOpacity(0.8),
-          suffixIcon: _isEditing ? Icon(
-            isNumeric ? Icons.numbers : Icons.edit,
-            color: Colors.grey,
-          ) : null,
+          suffixIcon: _isEditing
+              ? Icon(
+                  isNumeric ? Icons.numbers : Icons.edit,
+                  color: Colors.grey,
+                )
+              : null,
         ),
       ),
     );
@@ -215,13 +261,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       ElevatedButton(
-                        onPressed: _isLoading ? null : () {
-                          setState(() => _isEditing = false);
-                          _loadUserData();
-                        },
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                setState(() => _isEditing = false);
+                                _loadUserData();
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.grey,
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
                         ),
                         child: const Text('Cancel'),
                       ),
@@ -229,18 +278,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: _isLoading ? null : _saveChanges,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 30, vertical: 15),
                         ),
                         child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('Save'),
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Save'),
                       ),
                     ],
                   )
@@ -249,10 +299,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () => setState(() => _isEditing = true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 15),
                     ),
                     child: const Text('Edit Profile'),
                   ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _deleteAccount,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 30, vertical: 15),
+                  ),
+                  child: const Text('Supprimer mon compte'),
+                ),
               ],
             ),
           ),
