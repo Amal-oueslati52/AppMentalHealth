@@ -34,7 +34,7 @@ class _DoctorCabinetsScreenState extends State<DoctorCabinetsScreen> {
       // Get the doctor ID from the user's doctor object
       final doctorId = UserProvider.user!.doctorId;
       print('🔍 Loading cabinets for doctorId: $doctorId');
-      
+
       if (doctorId == null) {
         print('⚠️ Doctor ID is null');
         throw Exception('Doctor ID not found');
@@ -70,47 +70,116 @@ class _DoctorCabinetsScreenState extends State<DoctorCabinetsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mes Cabinets'),
-        backgroundColor: Colors.teal,
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadCabinets,
-              child: _cabinets.isEmpty
-                  ? Center(
-                      child: Text('Vous n\'avez pas encore de cabinet'),
-                    )
-                  : ListView.builder(
-                      itemCount: _cabinets.length,
-                      itemBuilder: (context, index) {
-                        final cabinet = _cabinets[index];
-                        return Card(
-                          margin: EdgeInsets.all(8),
-                          child: ListTile(
-                            title: Text(cabinet.title),
-                            subtitle: Text(cabinet.description ?? ''),
-                            trailing: IconButton(
-                              icon: Icon(Icons.calendar_today),
-                              onPressed: () => _navigateToReservations(cabinet),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+        title: const Text(
+          'Mes Cabinets',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CreateCabinetScreen()),
-          );
-          if (result == true) {
-            _loadCabinets();
-          }
-        },
-        backgroundColor: Colors.teal,
-        child: Icon(Icons.add),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Color(0xFFE8E9F3)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadCabinets,
+                child: _cabinets.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.business_outlined,
+                                size: 64, color: Color(0xFF8B94CD)),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Aucun cabinet trouvé',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Color(0xFF8B94CD),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _cabinets.length,
+                        itemBuilder: (context, index) {
+                          final cabinet = _cabinets[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      const Color(0xFFCA88CD).withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ListTile(
+                              title: Text(
+                                cabinet.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF8B94CD),
+                                ),
+                              ),
+                              subtitle: Text(cabinet.description ?? ''),
+                              trailing: IconButton(
+                                icon: Icon(
+                                  Icons.calendar_today,
+                                  color: Color(0xFFCA88CD),
+                                ),
+                                onPressed: () =>
+                                    _navigateToReservations(cabinet),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CreateCabinetScreen()),
+            );
+            if (result == true) {
+              _loadCabinets();
+            }
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

@@ -130,36 +130,161 @@ class _MapScreenState extends State<MapScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(cabinet.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(cabinet.description ?? 'No description available'),
-            if (cabinet.openTime != null && cabinet.closeTime != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Hours: ${cabinet.openTime} - ${cabinet.closeTime}',
-                  style: TextStyle(color: Colors.grey[600]),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        contentPadding: EdgeInsets.zero,
+        content: SingleChildScrollView( 
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      topRight: Radius.circular(15),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(  // Utilisation de Expanded pour le texte
+                        child: Text(
+                          cabinet.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,  // Ajout de l'ellipsis
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (cabinet.description?.isNotEmpty ?? false)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          width: double.infinity,  // Assure que le container prend toute la largeur
+                          child: Text(
+                            cabinet.description ?? '',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      if (cabinet.openTime != null && cabinet.closeTime != null)
+                        Container(
+                          width: double.infinity,  
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8E9F3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                color: Color(0xFF8B94CD),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(  // Utilisation de Expanded pour le texte
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Horaires d\'ouverture',
+                                      style: TextStyle(
+                                        color: Color(0xFF8B94CD),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${cabinet.openTime} - ${cabinet.closeTime}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showBookingDialog(cabinet);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+          Container(
+            margin: const EdgeInsets.only(right: 8, bottom: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFCA88CD).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Text('Book'),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showBookingDialog(cabinet);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text(
+                'Réserver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -177,72 +302,125 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Find a Cabinet'),
-        backgroundColor: Colors.teal,
+        title: const Text(
+          'Trouver un Cabinet',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : FlutterMap(
-              mapController: mapController,
-              options: MapOptions(
-                center: _getMapCenter(),
-                zoom: 12,
-                minZoom: 4,
-                maxZoom: 18,
-                keepAlive: true,
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFCA88CD)),
               ),
+            )
+          : Stack(
               children: [
-                TileLayer(
-                  urlTemplate:
-                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: ['a', 'b', 'c'],
-                  userAgentPackageName: 'com.example.app',
-                ),
-                MarkerLayer(
-                  markers: [
-                    if (currentLocation != null)
-                      Marker(
-                        point: currentLocation!,
-                        width: 40,
-                        height: 40,
-                        builder: (context) => Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.3),
-                            shape: BoxShape.circle,
+                FlutterMap(
+                  mapController: mapController,
+                  options: MapOptions(
+                    center: _getMapCenter(),
+                    zoom: 12,
+                    minZoom: 4,
+                    maxZoom: 18,
+                    keepAlive: true,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      subdomains: ['a', 'b', 'c'],
+                      userAgentPackageName: 'com.example.app',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        if (currentLocation != null)
+                          Marker(
+                            point: currentLocation!,
+                            width: 40,
+                            height: 40,
+                            builder: (context) => Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFCA88CD),
+                                    Color(0xFF8B94CD)
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFCA88CD)
+                                        .withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.my_location,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
                           ),
-                          child: Icon(
-                            Icons.my_location,
-                            color: Colors.blue,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                    ...cabinets.map(
-                      (cabinet) => Marker(
-                        point: LatLng(cabinet.latitude, cabinet.longitude),
-                        width: 40,
-                        height: 40,
-                        builder: (context) => GestureDetector(
-                          onTap: () => _showCabinetDetails(cabinet),
-                          child: Tooltip(
-                            message: cabinet.title,
-                            child: Icon(
-                              Icons.location_on,
-                              color: Colors.teal,
-                              size: 40,
+                        ...cabinets.map(
+                          (cabinet) => Marker(
+                            point: LatLng(cabinet.latitude, cabinet.longitude),
+                            width: 40,
+                            height: 40,
+                            builder: (context) => GestureDetector(
+                              onTap: () => _showCabinetDetails(cabinet),
+                              child: Tooltip(
+                                message: cabinet.title,
+                                child: Icon(
+                                  Icons.location_on,
+                                  color: Colors.teal,
+                                  size: 40,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _goToMyLocation,
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.my_location),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFCA88CD).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: _goToMyLocation,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(Icons.my_location, color: Colors.white),
+        ),
       ),
     );
   }

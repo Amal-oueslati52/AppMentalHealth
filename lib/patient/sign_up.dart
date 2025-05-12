@@ -64,7 +64,8 @@ class _SignUpState extends State<SignUp> {
     final objectif = _objectifController.text.trim();
 
     // Validation des champs
-    if ([email, password, name, genre, age, objectif].any((field) => field.isEmpty)) {
+    if ([email, password, name, genre, age, objectif]
+        .any((field) => field.isEmpty)) {
       showToast(message: "All fields must be filled");
       return;
     }
@@ -82,8 +83,9 @@ class _SignUpState extends State<SignUp> {
     _setLoading(true);
 
     try {
-      _logger.i('Attempting to register user with role: ${selectedRole!.value}');
-      
+      _logger
+          .i('Attempting to register user with role: ${selectedRole!.value}');
+
       // Enregistrement de l'utilisateur
       final userData = await _authService.register(
         email: email,
@@ -97,7 +99,8 @@ class _SignUpState extends State<SignUp> {
 
       if (!mounted) return;
 
-      _logger.i('User registered successfully, proceeding to profile completion');
+      _logger
+          .i('User registered successfully, proceeding to profile completion');
 
       // Redirection basée sur le rôle
       if (selectedRole == UserRole.doctor) {
@@ -129,23 +132,81 @@ class _SignUpState extends State<SignUp> {
       }
     } catch (e) {
       _logger.e('Registration error: $e');
-      showToast(message: "Registration failed: ${e.toString().replaceAll('Exception: ', '')}");
+      showToast(
+          message:
+              "Registration failed: ${e.toString().replaceAll('Exception: ', '')}");
     } finally {
       _setLoading(false);
     }
   }
 
-  InputDecoration _inputDecoration(String hintText, IconData icon) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.white),
-      border: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: Icon(icon, color: Colors.white70),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        ),
       ),
-      suffixIcon: Icon(icon, color: Colors.white),
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButtonFormField<UserRole>(
+          value: selectedRole,
+          dropdownColor: const Color(0xFF8B94CD),
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            prefixIcon: Icon(Icons.work, color: Colors.white70),
+          ),
+          items: UserRole.values.map((role) {
+            return DropdownMenuItem(
+              value: role,
+              child: Text(
+                role.toString().split('.').last.toUpperCase(),
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => selectedRole = value),
+        ),
+      ),
     );
   }
 
@@ -162,100 +223,112 @@ class _SignUpState extends State<SignUp> {
             ),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            padding: const EdgeInsets.all(30),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  'Sign Up',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
                 const SizedBox(height: 20),
-                TextField(
-                  controller: _nameController,
-                  decoration: _inputDecoration("Name", Icons.person),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _emailController,
-                  decoration: _inputDecoration("Email", Icons.email),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _passwordController,
-                  decoration: _inputDecoration("Password", Icons.lock),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<UserRole>(
-                  value: selectedRole,
-                  decoration: _inputDecoration("Select Role", Icons.work),
-                  dropdownColor: Colors.teal,
-                  items: UserRole.values.map((role) {
-                    return DropdownMenuItem(
-                      value: role,
-                      child: Text(
-                        role.toString().split('.').last.toUpperCase(),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedRole = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _genreController,
-                  decoration: _inputDecoration("Genre", Icons.person),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _ageController,
-                  decoration: _inputDecoration("Age", Icons.cake),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _objectifController,
-                  decoration: _inputDecoration("Objectif", Icons.star),
-                ),
-                const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signUp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 50,
-                      vertical: 15,
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.3)
+                      ],
                     ),
                   ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  child: const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      Icons.person_add,
+                      size: 50,
+                      color: Color(0xFF8B94CD),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text(
+                  'Créer un compte',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                _buildTextField(
+                  controller: _nameController,
+                  label: 'Nom complet',
+                  icon: Icons.person,
+                ),
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email',
+                  icon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'Mot de passe',
+                  icon: Icons.lock,
+                  isPassword: true,
+                ),
+                _buildRoleDropdown(),
+                _buildTextField(
+                  controller: _genreController,
+                  label: 'Genre',
+                  icon: Icons.person_outline,
+                ),
+                _buildTextField(
+                  controller: _ageController,
+                  label: 'Âge',
+                  icon: Icons.cake,
+                  keyboardType: TextInputType.number,
+                ),
+                _buildTextField(
+                  controller: _objectifController,
+                  label: 'Objectif',
+                  icon: Icons.stars,
+                ),
+                const SizedBox(height: 30),
+                Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.3)
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _signUp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'S\'inscrire',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ],
             ),

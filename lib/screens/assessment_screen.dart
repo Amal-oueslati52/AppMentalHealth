@@ -129,185 +129,233 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-  Widget _buildMessageBubble(Message message) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!message.isUser)
-            CircleAvatar(
-              backgroundColor: Colors.teal[100],
-              child: Icon(Icons.psychology,
-                  color: const Color.fromARGB(255, 128, 72, 106)),
-              radius: 20,
-            ),
-          SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: message.isUser ? Colors.teal[100] : Colors.grey[100],
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 5,
-                    offset: Offset(0, 2),
+  void _onLanguageChanged(String? value) {
+    if (value != null && !_isComplete) {
+      setState(() {
+        _selectedLanguage = value;
+        _messages.clear();
+        _startQuiz();
+      });
+    }
+  }
+
+  Widget _buildMessagesArea() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 20),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        final message = _messages[index];
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            mainAxisAlignment: message.isUser
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            children: [
+              if (!message.isUser) _buildAvatar(isUser: false),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: message.isUser
+                          ? [const Color(0xFFCA88CD), const Color(0xFF8B94CD)]
+                          : [Colors.white, Colors.white],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFCA88CD).withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+                  child: Text(
                     message.content,
                     style: TextStyle(
+                      color: message.isUser ? Colors.white : Colors.black87,
                       fontSize: 16,
-                      color: Colors.black87,
                     ),
                   ),
-                ],
+                ),
+              ),
+              if (message.isUser) const SizedBox(width: 8),
+              if (message.isUser) _buildAvatar(isUser: true),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAvatar({required bool isUser}) {
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: CircleAvatar(
+        backgroundColor: Colors.white,
+        radius: 20,
+        child: Icon(
+          isUser ? Icons.person : Icons.psychology,
+          color: const Color(0xFF8B94CD),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFCA88CD).withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: TextField(
+                controller: _textController,
+                decoration: const InputDecoration(
+                  hintText: 'Tapez votre réponse...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.all(16),
+                ),
+                onSubmitted: _sendAnswer,
               ),
             ),
           ),
-          if (message.isUser) SizedBox(width: 8),
-          if (message.isUser)
-            CircleAvatar(
-              backgroundColor: const Color.fromARGB(255, 158, 100, 144),
-              child: Icon(Icons.person, color: Colors.white),
-              radius: 20,
+          const SizedBox(width: 8),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
             ),
+            child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
+              onPressed: () => _sendAnswer(_textController.text),
+            ),
+          ),
         ],
       ),
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.teal[700],
-        title: Text(
-          'Suivi de la santé mentale',
-          style: TextStyle(color: Colors.white),
+        title: const Text(
+          'Évaluation Mentale',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
         actions: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: DropdownButton<String>(
-              dropdownColor: Colors.white,
-              icon: Icon(Icons.language, color: Colors.white),
-              underline: Container(),
-              value: _selectedLanguage,
-              items: _languages.entries.map((entry) {
-                return DropdownMenuItem<String>(
-                  value: entry.key,
-                  child: Text(
-                    entry.value,
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                );
-              }).toList(),
-              onChanged: _isComplete
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _selectedLanguage = value!;
-                        _messages.clear();
-                        _startQuiz();
-                      });
-                    },
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                dropdownColor: const Color(0xFF8B94CD),
+                icon: const Icon(Icons.language, color: Colors.white),
+                value: _selectedLanguage,
+                items: _languages.entries.map((entry) {
+                  return DropdownMenuItem<String>(
+                    value: entry.key,
+                    child: Text(
+                      entry.value,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                }).toList(),
+                onChanged: _isComplete ? null : _onLanguageChanged,
+              ),
             ),
           ),
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
+            colors: [Colors.white, Color(0xFFE8E9F3)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.teal[50]!, Colors.white],
           ),
         ),
         child: Column(
           children: [
             Container(
-              height: 6,
-              child: LinearProgressIndicator(
-                value: _questionCount / 5,
-                backgroundColor: Colors.teal[100],
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal[700]!),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.only(bottom: 20),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  return _buildMessageBubble(_messages[index]);
-                },
-              ),
-            ),
-            if (_isLoading)
-              Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.teal[700]!),
+              height: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFCA88CD),
+                    const Color(0xFF8B94CD).withOpacity(_questionCount / 5),
+                  ],
                 ),
               ),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  ),
-                ],
-              ),
-              padding: EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Tapez votre réponse...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                      ),
-                      maxLines: null,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.teal[700],
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.send, color: Colors.white),
-                      onPressed: () => _sendAnswer(_textController.text),
-                    ),
-                  ),
-                ],
-              ),
             ),
+            Expanded(child: _buildMessagesArea()),
+            if (_isLoading) _buildLoadingIndicator(),
+            _buildInputArea(),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildLoadingIndicator() {
+    return Container(
+      height: 2,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+        ),
+      ),
+      child: const LinearProgressIndicator(
+        backgroundColor: Colors.transparent,
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
+    );
+  }
+
+  // Reste des widgets avec le même style que le chat...
 }

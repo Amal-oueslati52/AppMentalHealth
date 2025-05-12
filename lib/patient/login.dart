@@ -85,17 +85,103 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
-  InputDecoration _inputDecoration(String hintText, IconData icon) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.white),
-      border: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    FocusNode? focusNode,
+    TextInputAction? textInputAction,
+    Function(String)? onSubmitted,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.white),
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        obscureText: isPassword,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          prefixIcon: Icon(icon, color: Colors.white70),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        ),
+        keyboardType: isPassword
+            ? TextInputType.visiblePassword
+            : TextInputType.emailAddress,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
       ),
-      suffixIcon: Icon(icon, color: Colors.white),
+    );
+  }
+
+  Widget _buildGradientButton({
+    required VoidCallback onPressed,
+    required String label,
+    bool isLoading = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.2),
+            Colors.white.withOpacity(0.3)
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
     );
   }
 
@@ -104,8 +190,6 @@ class _LoginState extends State<Login> {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          width: double.infinity,
-          height: double.infinity,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
@@ -114,74 +198,75 @@ class _LoginState extends State<Login> {
             ),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+            padding: const EdgeInsets.all(30),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 60),
-                const Text(
-                  'Login',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const SizedBox(height: 50),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.2),
+                        Colors.white.withOpacity(0.3)
+                      ],
+                    ),
+                  ),
+                  child: const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      Icons.psychology,
+                      size: 50,
+                      color: Color(0xFF8B94CD),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                TextField(
+                const SizedBox(height: 30),
+                const Text(
+                  'Bienvenue',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                _buildTextField(
                   controller: _emailController,
+                  label: 'Email',
+                  icon: Icons.email,
                   focusNode: _emailFocusNode,
-                  decoration: _inputDecoration('Email', Icons.email),
-                  keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   onSubmitted: (_) => _passwordFocusNode.requestFocus(),
                 ),
-                const SizedBox(height: 20),
-                TextField(
+                _buildTextField(
                   controller: _passwordController,
+                  label: 'Mot de passe',
+                  icon: Icons.lock,
+                  isPassword: true,
                   focusNode: _passwordFocusNode,
-                  decoration: _inputDecoration('Password', Icons.lock),
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _signIn(),
                 ),
                 const SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 50,
-                      vertical: 15,
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Login',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                _buildGradientButton(
+                  onPressed: _signIn,
+                  label: 'Se connecter',
+                  isLoading: _isLoading,
                 ),
                 const SizedBox(height: 20),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SignUp()),
-                    );
-                  },
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SignUp()),
+                  ),
                   child: const Text(
-                    'Create an account',
+                    'Créer un compte',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                       decoration: TextDecoration.underline,
                     ),
                   ),

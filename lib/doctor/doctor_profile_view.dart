@@ -136,85 +136,116 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon Profil'),
-        backgroundColor: Colors.teal,
+        title: const Text(
+          'Mon Profil',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () => _authService.logout(context),
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.teal.shade100,
-                      child: const Icon(Icons.person,
-                          size: 50, color: Colors.teal),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTextField(
-                      controller: _nameController,
-                      label: 'Nom complet',
-                      icon: Icons.person,
-                    ),
-                    _buildTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      icon: Icons.email,
-                      enabled: false,
-                    ),
-                    _buildTextField(
-                      controller: _specialityController,
-                      label: 'Spécialité',
-                      icon: Icons.psychology,
-                    ),
-                    _buildTextField(
-                      controller: _ageController,
-                      label: 'Âge',
-                      icon: Icons.calendar_today,
-                      keyboardType: TextInputType.number,
-                    ),
-                    _buildTextField(
-                      controller: _phoneController,
-                      label: 'Téléphone',
-                      icon: Icons.phone,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _saveProfile,
-                      icon: const Icon(Icons.save),
-                      label: const Text('Enregistrer les modifications'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30,
-                          vertical: 12,
+          : Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.white, Color(0xFFE8E9F3)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.purple.withOpacity(0.2),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.white,
+                          child: const Icon(Icons.person,
+                              size: 50, color: Color(0xFF8B94CD)),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _deleteAccount,
-                      icon: const Icon(Icons.delete_forever),
-                      label: const Text('Supprimer mon compte'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30,
-                          vertical: 12,
-                        ),
+                      const SizedBox(height: 20),
+                      _buildTextField(
+                        controller: _nameController,
+                        label: 'Nom complet',
+                        icon: Icons.person,
+                        gradient: true,
                       ),
-                    ),
-                  ],
+                      _buildTextField(
+                        controller: _emailController,
+                        label: 'Email',
+                        icon: Icons.email,
+                        enabled: false,
+                        gradient: true,
+                      ),
+                      _buildTextField(
+                        controller: _specialityController,
+                        label: 'Spécialité',
+                        icon: Icons.psychology,
+                        gradient: true,
+                      ),
+                      _buildTextField(
+                        controller: _ageController,
+                        label: 'Âge',
+                        icon: Icons.calendar_today,
+                        keyboardType: TextInputType.number,
+                        gradient: true,
+                      ),
+                      _buildTextField(
+                        controller: _phoneController,
+                        label: 'Téléphone',
+                        icon: Icons.phone,
+                        keyboardType: TextInputType.phone,
+                        gradient: true,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildGradientButton(
+                        onPressed: _isLoading ? null : _saveProfile,
+                        icon: Icons.save,
+                        label: 'Enregistrer les modifications',
+                        gradient: const [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                      ),
+                      const SizedBox(height: 40),
+                      _buildGradientButton(
+                        onPressed: _isLoading ? null : _deleteAccount,
+                        icon: Icons.delete_forever,
+                        label: 'Supprimer mon compte',
+                        gradient: const [Colors.redAccent, Colors.red],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -228,21 +259,38 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
     bool enabled = true,
     int maxLines = 1,
     TextInputType? keyboardType,
+    bool gradient = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextFormField(
         controller: controller,
         enabled: enabled,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Colors.teal),
-          border: const OutlineInputBorder(),
-          focusedBorder: const OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.teal),
+          labelStyle: TextStyle(color: Colors.grey[600]),
+          prefixIcon: Icon(icon,
+              color: gradient ? const Color(0xFF8B94CD) : Colors.grey[600]),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
+          filled: true,
+          fillColor: Colors.white,
         ),
         validator: (value) {
           if (value == null || value.isEmpty) {
@@ -250,6 +298,52 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
           }
           return null;
         },
+      ),
+    );
+  }
+
+  Widget _buildGradientButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    required List<Color> gradient,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: gradient[0].withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+        ),
       ),
     );
   }

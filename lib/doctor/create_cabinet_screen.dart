@@ -140,141 +140,259 @@ class _CreateCabinetScreenState extends State<CreateCabinetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Créer un Cabinet'),
-        backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.my_location),
-            onPressed: _getCurrentLocation,
+        title: const Text('Créer un Cabinet',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ],
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Nom du Cabinet',
-                  border: OutlineInputBorder(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Color(0xFFE8E9F3)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildTextField(
+                  controller: _titleController,
+                  label: 'Nom du Cabinet',
+                  icon: Icons.business,
                 ),
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Ce champ est requis' : null,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _descriptionController,
+                  label: 'Description',
+                  icon: Icons.description,
+                  maxLines: 3,
                 ),
-                maxLines: 3,
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Ce champ est requis' : null,
-              ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _openTimeController,
-                      decoration: InputDecoration(
-                        labelText: 'Heure d\'ouverture',
-                        border: OutlineInputBorder(),
-                      ),
-                      readOnly: true,
-                      onTap: () => _selectTime(context, true),
-                      validator: (value) =>
-                          value?.isEmpty ?? true ? 'Ce champ est requis' : null,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _closeTimeController,
-                      decoration: InputDecoration(
-                        labelText: 'Heure de fermeture',
-                        border: OutlineInputBorder(),
-                      ),
-                      readOnly: true,
-                      onTap: () => _selectTime(context, false),
-                      validator: (value) =>
-                          value?.isEmpty ?? true ? 'Ce champ est requis' : null,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              Container(
-                height: 300,
-                child: Stack(
+                const SizedBox(height: 16),
+                Row(
                   children: [
-                    FlutterMap(
-                      mapController: _mapController,
-                      options: MapOptions(
-                        center: _selectedLocation ?? LatLng(36.8, 10.173),
-                        zoom: 13.0,
-                        onTap: (tapPosition, point) {
-                          setState(() => _selectedLocation = point);
-                        },
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _openTimeController,
+                        label: 'Heure d\'ouverture',
+                        icon: Icons.access_time,
+                        readOnly: true,
+                        onTap: () => _selectTime(context, true),
                       ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          subdomains: ['a', 'b', 'c'],
-                        ),
-                        if (_selectedLocation != null)
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: _selectedLocation!,
-                                width: 80,
-                                height: 80,
-                                builder: (context) => Icon(
-                                  Icons.location_on,
-                                  color: Colors.red,
-                                  size: 40,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
                     ),
-                    Positioned(
-                      right: 16,
-                      bottom: 16,
-                      child: FloatingActionButton(
-                        onPressed: _getCurrentLocation,
-                        child: Icon(Icons.my_location),
-                        backgroundColor: Colors.teal,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        controller: _closeTimeController,
+                        label: 'Heure de fermeture',
+                        icon: Icons.access_time,
+                        readOnly: true,
+                        onTap: () => _selectTime(context, false),
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(height: 16),
-              if (_selectedLocation != null)
-                Text(
-                  'Position sélectionnée: ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}',
-                  style: TextStyle(color: Colors.grey),
+                const SizedBox(height: 16),
+                Container(
+                  height: 300,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFCA88CD).withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            center: _selectedLocation ??  LatLng(36.8, 10.173),
+                            zoom: 13.0,
+                            onTap: (tapPosition, point) {
+                              setState(() => _selectedLocation = point);
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              subdomains: const ['a', 'b', 'c'],
+                            ),
+                            if (_selectedLocation != null)
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: _selectedLocation!,
+                                    width: 80,
+                                    height: 80,
+                                    builder: (context) => const Icon(
+                                      Icons.location_on,
+                                      color: Color(0xFFCA88CD),
+                                      size: 40,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                        Positioned(
+                          right: 16,
+                          bottom: 16,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: FloatingActionButton(
+                              onPressed: _getCurrentLocation,
+                              backgroundColor: Colors.transparent,
+                              elevation: 0,
+                              child: const Icon(Icons.my_location, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _createCabinet,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                if (_selectedLocation != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Position: ${_selectedLocation!.latitude.toStringAsFixed(6)}, ${_selectedLocation!.longitude.toStringAsFixed(6)}',
+                      style: const TextStyle(
+                        color: Color(0xFF8B94CD),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                _buildGradientButton(
+                  onPressed: _isLoading ? null : _createCabinet,
+                  label: 'Créer le Cabinet',
+                  icon: Icons.add_business,
                 ),
-                child: _isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text('Créer le Cabinet', style: TextStyle(fontSize: 16)),
-              ),
-            ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    int maxLines = 1,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFCA88CD).withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[600]),
+          prefixIcon: Icon(icon, color: const Color(0xFF8B94CD)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        validator: (value) => value?.isEmpty ?? true ? 'Ce champ est requis' : null,
+      ),
+    );
+  }
+
+  Widget _buildGradientButton({
+    required VoidCallback? onPressed,
+    required String label,
+    required IconData icon,
+  }) {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: onPressed == null
+              ? [Colors.grey, Colors.grey]
+              : [const Color(0xFFCA88CD), const Color(0xFF8B94CD)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFCA88CD).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(icon, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
           ),
         ),
       ),

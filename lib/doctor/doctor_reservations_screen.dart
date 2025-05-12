@@ -169,12 +169,26 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
     final status = reservation['state'] ?? 'PENDING';
     final user = reservation['users_permissions_user'] ?? {};
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFCA88CD).withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ListTile(
         title: Text(
           'Patient: ${user['username'] ?? 'Inconnu'}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF8B94CD),
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,15 +201,16 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Color(
-                  int.parse(
-                    _getStatusColor(status).replaceAll('#', '0xFF'),
-                  ),
+                gradient: LinearGradient(
+                  colors: [
+                    Color(int.parse(
+                        _getStatusColor(status).replaceAll('#', '0xFF'))),
+                    Color(int.parse(
+                            _getStatusColor(status).replaceAll('#', '0xFF')))
+                        .withOpacity(0.8),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -207,6 +222,7 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
           ],
         ),
         trailing: PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Color(0xFF8B94CD)),
           onSelected: (String choice) {
             final reservationId = reservation['id']?.toString();
             if (reservationId != null) {
@@ -232,21 +248,42 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Réservations - ${widget.cabinet.title}'),
-        backgroundColor: Colors.teal,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadReservations,
-              child: _reservations.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      itemCount: _reservations.length,
-                      itemBuilder: (context, index) =>
-                          _buildReservationCard(_reservations[index]),
-                    ),
+        title: Text(
+          'Réservations - ${widget.cabinet.title}',
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFCA88CD), Color(0xFF8B94CD)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.white, Color(0xFFE8E9F3)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _loadReservations,
+                child: _reservations.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        itemCount: _reservations.length,
+                        itemBuilder: (context, index) =>
+                            _buildReservationCard(_reservations[index]),
+                      ),
+              ),
+      ),
     );
   }
 }
