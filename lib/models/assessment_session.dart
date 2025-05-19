@@ -38,4 +38,18 @@ class AssessmentSession {
       isComplete: json['isComplete'] ?? false,
     );
   }
+
+  Map<String, dynamic> toStrapiJson() => {
+        'data': {
+          'type': 'ASSESSMENT',
+          'message': {
+            'text': report,
+            'conversation': conversation
+                .map((m) => {'content': m.content, 'isUser': m.isUser})
+                .toList(),
+          },
+          'data': {'users_permissions_user': int.parse(userId)},
+          'publishedAt': DateTime.now().toIso8601String()
+        }
+      };
 }

@@ -3,6 +3,7 @@ import 'package:app/services/chat_service.dart';
 import 'package:app/models/message.dart';
 import 'package:app/services/assessment_storage_service.dart';
 import 'package:app/models/assessment_session.dart';
+import 'package:app/user_provider.dart';
 
 class AssessmentScreen extends StatefulWidget {
   @override
@@ -47,6 +48,16 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   Future<void> _sendAnswer(String text) async {
     if (text.isEmpty) return;
+
+    final currentUser = UserProvider.user;
+    if (currentUser == null) {
+      print('❌ No user found');
+      return;
+    }
+
+     final userId = currentUser.id.toString();
+    print('🔍 Saving assessment with user ID: $userId');
+
     setState(() {
       _messages.add(Message(content: text, isUser: true));
       _isLoading = true;
@@ -56,7 +67,9 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
     try {
       final response = await _chatService.continueAssessment(
-          _messages, 'userId', _selectedLanguage);
+          _messages,
+          userId, // Utiliser l'ID directement
+          _selectedLanguage);
 
       setState(() {
         _messages.add(Message(content: response['message'], isUser: false));
@@ -75,9 +88,22 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   Future<void> _saveAssessmentSession() async {
     try {
+      final currentUser = UserProvider.user;
+      if (currentUser == null) {
+        print('❌ No user found for saving assessment');
+        return;
+      }
+
+      final userId = currentUser.id.toString();
+      print('🔍 Saving assessment with user ID: $userId');
+
+      if (_messages.isEmpty) {
+        throw Exception('No messages to save');
+      }
+
       final session = AssessmentSession(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: 'userId',
+        userId: userId, 
         timestamp: DateTime.now(),
         conversation: _messages,
         report: _messages.last.content,
@@ -85,14 +111,20 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       );
 
       await _storageService.saveSession(session);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Évaluation sauvegardée')),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Suivi de la journal')),
+        );
+      }
     } catch (e) {
       print('❌ Error saving assessment: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la sauvegarde')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Erreur lors de la sauvegarde: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -100,12 +132,12 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Évaluation Terminée'),
+        title: Text('Suivi de la journal Terminée'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Merci d\'avoir complété l\'évaluation.'),
+            Text('Merci d\'avoir complété le suivi de la journal.'),
             SizedBox(height: 8),
             Text('Voulez-vous sauvegarder cette session ?'),
           ],
@@ -266,13 +298,12 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Évaluation Mentale',
+          'Suivi de la journal',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         flexibleSpace: Container(
@@ -313,26 +344,31 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFFE8E9F3)],
+            colors: [
+              Colors.white,
+              const Color(0xFFE8E9F3),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: Column(
           children: [
-            Container(
-              height: 4,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFFCA88CD),
-                    const Color(0xFF8B94CD).withOpacity(_questionCount / 5),
-                  ],
+            if (_questionCount > 0)
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFCA88CD),
+                      Color(0xFF8B94CD)
+                          .withOpacity((_questionCount / 5).clamp(0.0, 1.0)),
+                    ],
+                  ),
                 ),
               ),
-            ),
             Expanded(child: _buildMessagesArea()),
             if (_isLoading) _buildLoadingIndicator(),
             _buildInputArea(),

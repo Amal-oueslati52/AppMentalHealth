@@ -14,7 +14,7 @@ class HttpClient {
     };
   }
 
-  Future<Map<String, dynamic>> get(String url) async {
+  Future<dynamic> get(String url) async {
     try {
       final headers = await _getHeaders();
       final response = await http.get(
@@ -35,18 +35,27 @@ class HttpClient {
   Future<dynamic> post(String url, {Map<String, dynamic>? body}) async {
     try {
       final headers = await _getHeaders();
+      print('📤 Making POST request to: $url');
+      print('📤 Request body: ${json.encode(body)}');
+
       final response = await http.post(
         Uri.parse(url),
         headers: headers,
-        body: body != null ? json.encode(body) : null,
+        body: json.encode(body),
       );
+
+      print('📥 Response status: ${response.statusCode}');
+      print('📥 Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return json.decode(response.body);
       }
-      throw Exception('Request failed with status: ${response.statusCode}');
+
+      throw Exception(
+          'Request failed with status: ${response.statusCode}\nResponse: ${response.body}');
     } catch (e) {
-      throw Exception('Failed to make POST request: $e');
+      print('❌ POST request failed: $e');
+      rethrow;
     }
   }
 

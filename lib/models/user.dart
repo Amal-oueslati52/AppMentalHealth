@@ -51,7 +51,7 @@ class User {
 
   String? get speciality => doctor?['speciality'];
   String? get birthdate => patient?['birthdate'];
-  
+
   // Updated getter to access the doctor ID correctly
   String? get doctorId => doctor?['id']?.toString();
 

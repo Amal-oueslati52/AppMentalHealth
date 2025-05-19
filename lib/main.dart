@@ -1,23 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:app/patient/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
-    await Firebase.initializeApp();
-    print("Firebase initialized: ${Firebase.app().options}");
+    // Initialize Firebase with your configurations
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey: "AIzaSyD6McMzcCR-PIHgHw-YN-ctpopOJjbCvLI",
+        appId: "1:709467509181:android:4adbf5132d733552b882d4",
+        messagingSenderId: "709467509181",
+        projectId: "app1-40a70",
+        storageBucket: "app1-40a70.firebasestorage.app",
+      ),
+    );
+
+    // Enable anonymous auth
+    await FirebaseAuth.instance.signInAnonymously();
+
+    // Initialize App Check after Firebase
+    await FirebaseAppCheck.instance.activate(
+      androidProvider:
+          AndroidProvider.debug, // Change to playIntegrity for production
+      appleProvider: AppleProvider.deviceCheck,
+    );
+
+    print("Firebase initialized successfully with anonymous auth");
   } catch (e) {
     print("Error initializing Firebase: $e");
   }
-
-  // Activer Firebase App Check
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity, // Utilise Play Integrity pour Android
-    appleProvider: AppleProvider.deviceCheck, // Utilise DeviceCheck pour iOS
-  );
 
   await dotenv.load(fileName: ".env");
   print("Environment variables loaded");

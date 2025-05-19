@@ -27,14 +27,18 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _initialize() async {
+    setState(() => _isLoading = true);
     try {
+      await _loadCabinets();
       await _requestLocationPermission();
-      await Future.wait([
-        _loadCabinets(),
-        _goToMyLocation(),
-      ]);
+      await _goToMyLocation();
     } catch (e) {
-      _showError('Error initializing map: $e');
+      // Continue même si la localisation échoue
+      print('Location error: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -76,18 +80,20 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _goToMyLocation() async {
-    if (_locationError) return;
-
     try {
       final Position position = await Geolocator.getCurrentPosition();
       if (mounted) {
         setState(() {
           currentLocation = LatLng(position.latitude, position.longitude);
+          _locationError = false;
         });
         mapController.move(currentLocation!, 14);
       }
     } catch (e) {
-      _showError('Error getting location: $e');
+      if (mounted) {
+        setState(() => _locationError = true);
+        _showError('Activez la localisation pour voir votre position');
+      }
     }
   }
 
@@ -96,34 +102,48 @@ class _MapScreenState extends State<MapScreen> {
       setState(() => _isLoading = true);
       final loadedCabinets = await _cabinetService.fetchCabinets();
 
-      if (mounted) {
+      if (mounted && loadedCabinets.isNotEmpty) {
         setState(() {
           cabinets = loadedCabinets;
           _isLoading = false;
         });
         _centerMapOnCabinets();
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+          cabinets = [];
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showError('Error loading cabinets: $e');
+        // Afficher le message d'erreur uniquement si aucun cabinet n'a été chargé
+        if (cabinets.isEmpty) {
+          _showError('Impossible de charger les cabinets');
+        }
       }
     }
   }
 
   LatLng _getMapCenter() {
+    if (cabinets.isNotEmpty) {
+      // Priorité aux cabinets disponibles
+      double avgLat = cabinets.map((c) => c.latitude).reduce((a, b) => a + b) /
+          cabinets.length;
+      double avgLng = cabinets.map((c) => c.longitude).reduce((a, b) => a + b) /
+          cabinets.length;
+      return LatLng(avgLat, avgLng);
+    }
     if (currentLocation != null) {
       return currentLocation!;
-    } else if (cabinets.isNotEmpty) {
-      return LatLng(cabinets[0].latitude, cabinets[0].longitude);
-    } else {
-      return LatLng(36.8, 10.173); // Default to Tunis
     }
+    // Vue par défaut centrée sur la Tunisie
+    return LatLng(34.0, 9.0);
   }
 
   void _centerMapOnCabinets() {
     final center = _getMapCenter();
-    mapController.move(center, 12);
+    mapController.move(center, cabinets.isNotEmpty ? 8 : 6);
   }
 
   void _showCabinetDetails(Cabinet cabinet) {
@@ -134,7 +154,7 @@ class _MapScreenState extends State<MapScreen> {
           borderRadius: BorderRadius.circular(15),
         ),
         contentPadding: EdgeInsets.zero,
-        content: SingleChildScrollView( 
+        content: SingleChildScrollView(
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
@@ -160,7 +180,8 @@ class _MapScreenState extends State<MapScreen> {
                     children: [
                       const Icon(Icons.location_on, color: Colors.white),
                       const SizedBox(width: 8),
-                      Expanded(  // Utilisation de Expanded pour le texte
+                      Expanded(
+                        // Utilisation de Expanded pour le texte
                         child: Text(
                           cabinet.title,
                           style: const TextStyle(
@@ -168,7 +189,8 @@ class _MapScreenState extends State<MapScreen> {
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
-                          overflow: TextOverflow.ellipsis,  // Ajout de l'ellipsis
+                          overflow:
+                              TextOverflow.ellipsis, // Ajout de l'ellipsis
                         ),
                       ),
                     ],
@@ -182,7 +204,8 @@ class _MapScreenState extends State<MapScreen> {
                       if (cabinet.description?.isNotEmpty ?? false)
                         Container(
                           margin: const EdgeInsets.only(bottom: 16),
-                          width: double.infinity,  // Assure que le container prend toute la largeur
+                          width: double
+                              .infinity, // Assure que le container prend toute la largeur
                           child: Text(
                             cabinet.description ?? '',
                             style: const TextStyle(
@@ -193,7 +216,7 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       if (cabinet.openTime != null && cabinet.closeTime != null)
                         Container(
-                          width: double.infinity,  
+                          width: double.infinity,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 12,
@@ -210,7 +233,8 @@ class _MapScreenState extends State<MapScreen> {
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
-                              Expanded(  // Utilisation de Expanded pour le texte
+                              Expanded(
+                                // Utilisation de Expanded pour le texte
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -272,7 +296,8 @@ class _MapScreenState extends State<MapScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -303,7 +328,7 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Trouver un Cabinet',
+          'Rechercher un Cabinet',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         flexibleSpace: Container(
@@ -397,6 +422,42 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ],
                 ),
+                if (_locationError)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(
+                            Icons.location_off,
+                            color: Color(0xFFCA88CD),
+                            size: 16,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Localisation désactivée',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
       floatingActionButton: Container(

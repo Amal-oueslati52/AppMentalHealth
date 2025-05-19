@@ -1,8 +1,12 @@
+import 'package:app/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/message.dart';
 import '../services/assessment_storage_service.dart';
 import '../models/assessment_session.dart';
+import 'conversation_storage_service.dart';
+import '../user_provider.dart';
+import 'dart:io';
 
 // Service de chat qui gère l'envoi des messages à l'API et la réception des réponses
 class ChatService {
@@ -14,6 +18,9 @@ class ChatService {
 
   // Instance du service de stockage des évaluations
   final AssessmentStorageService _storageService = AssessmentStorageService();
+
+  final ConversationStorageService _conversationStorage =
+      ConversationStorageService();
 
   final Map<String, List<Map<String, String>>> _psychAssessment = {
     'fr': [
@@ -69,6 +76,10 @@ class ChatService {
     ]
   };
 
+  final String apiUrl = Platform.isAndroid
+      ? 'http://192.168.0.2:1337/api'
+      : 'http://localhost:1337/api';
+
   // Méthode pour formater les messages avant de les envoyer à l'API
   List<Map<String, String>> _prepareMessages(List<Message> messages,
       {bool isAssessment = false,
@@ -80,7 +91,7 @@ class ChatService {
       formattedMessages.add({
         "role": "system",
         "content": """
-Assistant de santé mentale - Directives:
+Assistant de la santé mentale - Directives:
 - Répondez de manière brève et claire (2-3 phrases maximum)
 - Restez pratique et concret
 - Pour les questions complexes, suggérez de consulter un professionnel
@@ -163,13 +174,28 @@ Assistant de santé mentale - Directives:
         data: {
           'messages': _prepareMessages(messages),
           'model': 'llama-3.3-70b-versatile',
-          'temperature': 0.7, // Réduit pour des réponses plus concises
-          'max_tokens': 150, // Limite la longueur des réponses
+          'temperature': 0.7,
+          'max_tokens': 150,
         },
       );
 
       if (response.statusCode == 200) {
-        return response.data['choices'][0]['message']['content'];
+        final responseContent = response.data['choices'][0]['message']['content'];
+
+        // Sauvegarder la conversation avec le bon ID
+        final user = UserProvider.user;
+        if (user?.id != null) {
+          await _conversationStorage.saveConversation(
+            messages: messages.map((m) => {
+              'content': m.content,
+              'isUser': m.isUser,
+              'timestamp': DateTime.now().toIso8601String(),
+            }).toList(),
+            userId: user!.id.toString(), // Changed: using userId instead of patientId
+          );
+        }
+
+        return responseContent;
       }
       throw Exception('Failed to get response');
     } catch (e) {
@@ -211,6 +237,10 @@ Assistant de santé mentale - Directives:
   Future<Map<String, dynamic>> continueAssessment(
       List<Message> conversation, String userId, String language) async {
     try {
+      if (conversation.isEmpty) {
+        throw Exception('No conversation history');
+      }
+
       final response = await _dio.post(
         _baseUrl,
         options: Options(headers: {
@@ -225,12 +255,18 @@ Assistant de santé mentale - Directives:
         },
       );
 
+      if (response.statusCode != 200) {
+        throw Exception('Failed to get response from API');
+      }
+
       final content = response.data['choices'][0]['message']['content'];
-      final isReport =
-          content.contains('Résumé') || content.contains('Recommandations');
+      final isReport = content.contains('SYNTHÈSE') ||
+          content.contains('Résumé') ||
+          content.contains('Recommandations');
 
       if (isReport) {
-        // Sauvegarder la session complète
+        print('📝 Saving assessment for user ID: $userId');
+
         final session = AssessmentSession(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           userId: userId,
@@ -239,6 +275,7 @@ Assistant de santé mentale - Directives:
           report: content,
           isComplete: true,
         );
+
         await _storageService.saveSession(session);
       }
 
@@ -249,8 +286,22 @@ Assistant de santé mentale - Directives:
         'isComplete': isReport,
       };
     } catch (e) {
-      print('❌ Error: $e');
-      return {'error': e.toString()};
+      print('❌ Error in continueAssessment: $e');
+      throw e;
+    }
+  }
+
+  // Ajout d'une nouvelle méthode pour récupérer l'utilisateur actuel avec documentId
+  Future<User?> getCurrentUser() async {
+    try {
+      final user = UserProvider.user;
+      if (user == null) return null;
+
+      // Utiliser directement l'ID de l'utilisateur courant
+      return user;
+    } catch (e) {
+      print('❌ Error getting current user: $e');
+      return null;
     }
   }
 }

@@ -25,7 +25,7 @@ class AuthService {
   // Utiliser la bonne URL selon la plateforme
   static const String _iosBaseUrl = 'http://127.0.0.1:1337/api';
   static const String _androidBaseUrl =
-      'http://192.168.0.5:1337/api'; // Fixed URL
+      'http://192.168.0.4:1337/api'; // Fixed URL
   static final String baseUrl = Platform.isIOS ? _iosBaseUrl : _androidBaseUrl;
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -589,6 +589,12 @@ class AuthService {
       if (jwt == null) throw Exception('No authentication token found');
 
       _logger.d('Fetching complete user data...');
+      // First check if we already have a user in UserProvider
+      if (UserProvider.user != null) {
+        _logger.d('Using cached user from UserProvider');
+        return UserProvider.user!;
+      }
+
       final userResponse = await http.get(
         Uri.parse('$baseUrl/users/me'),
         headers: {'Authorization': 'Bearer $jwt'},
@@ -629,9 +635,10 @@ class AuthService {
           finalUserData['patient'] = patientData['data'][0]['attributes'];
         }
       }
-
       _logger.d('Final user data: $finalUserData');
-      return User.fromJson(finalUserData);
+      final user = User.fromJson(finalUserData);
+      UserProvider.user = user; // Set the user in UserProvider
+      return user;
     } catch (e) {
       _logger.e('Error fetching user data: $e');
       throw Exception('Failed to fetch user data');

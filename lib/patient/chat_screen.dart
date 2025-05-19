@@ -190,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Assistant de santé mentale',
+          'Assistant de la santé mentale',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         flexibleSpace: Container(

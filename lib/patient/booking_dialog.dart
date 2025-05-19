@@ -195,8 +195,7 @@ class _BookingDialogState extends State<BookingDialog> {
       Navigator.pop(context);
 
       Flushbar(
-        message:
-            success ? 'Reservation confirmed!' : 'Failed to make reservation',
+        message: success ? 'Réservation confirmée!' : 'Échec de la réservation',
         duration: Duration(seconds: 3),
         margin: EdgeInsets.all(8),
         borderRadius: BorderRadius.circular(8),
@@ -230,7 +229,7 @@ class _BookingDialogState extends State<BookingDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Book ${widget.cabinet.title}',
+              'Reservation ${widget.cabinet.title}',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             SizedBox(height: 16),
@@ -246,7 +245,7 @@ class _BookingDialogState extends State<BookingDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text('Cancel'),
+                    child: Text('Annuler'),
                   ),
                   SizedBox(width: 8),
                   ElevatedButton(
@@ -264,7 +263,7 @@ class _BookingDialogState extends State<BookingDialog> {
                                   AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : Text('Confirm'),
+                        : Text('Confirmer'),
                   ),
                 ],
               ),

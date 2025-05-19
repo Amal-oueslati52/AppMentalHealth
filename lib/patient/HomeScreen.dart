@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
-import 'ProfileScreen.dart'; // Importez vos écrans
+import 'ProfileScreen.dart';
 import 'chat_screen.dart';
-import 'map_screen.dart'; // Importez votre écran de carte
+import 'map_screen.dart';
 import '../screens/assessment_screen.dart';
+import '../screens/contacts.dart'; // Ajouter cet import
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -21,7 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
     const HomeContent(), // Contenu de l'écran d'accueil
     const ProfileScreen(), // Profil
     MapScreen(), // Carte
-    const ChatScreen(), // Chatbot
+    const ChatScreen(), // Garder le chat
+    const ChatListScreen(), // Ajouter l'écran des contacts
   ];
 
   @override
@@ -85,13 +87,16 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(Icons.home, color: Colors.deepPurple), // Accueil
           Icon(Icons.person, color: Colors.deepPurple), // Profil
           Icon(Icons.map, color: Colors.deepPurple), // Carte
-          Icon(Icons.message, color: Colors.deepPurple), // Chatbot
+          Icon(Icons.chat, color: Colors.deepPurple), // Garder le chat
+          Icon(Icons.contacts,
+              color: Colors.deepPurple), // Ajouter les contacts
         ],
         inactiveIcons: const [
           Text("Accueil"),
           Text("Profil"),
           Text("Carte"),
-          Text("Chatbot"),
+          Text("Chatbot"), // Garder le chatbot
+          Text("Contacts"), // Ajouter les contacts
         ],
         color: Colors.white,
         height: 60,

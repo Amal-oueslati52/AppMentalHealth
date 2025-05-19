@@ -111,7 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
+                child: const Text("Annuler"),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
@@ -272,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 30, vertical: 15),
                         ),
-                        child: const Text('Cancel'),
+                        child: const Text('Annuler'),
                       ),
                       ElevatedButton(
                         onPressed: _isLoading ? null : _saveChanges,
@@ -290,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Text('Save'),
+                            : const Text('Enregistrer'),
                       ),
                     ],
                   )
@@ -302,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15),
                     ),
-                    child: const Text('Edit Profile'),
+                    child: const Text('modifier Profile'),
                   ),
                 const SizedBox(height: 20),
                 ElevatedButton(

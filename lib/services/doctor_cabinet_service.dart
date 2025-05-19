@@ -8,7 +8,7 @@ import 'strapi_auth_service.dart';
 class DoctorCabinetService {
   final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.5:1337/api'
+      ? 'http://192.168.0.4:1337/api'
       : 'http://localhost:1337/api';
 
   final Logger logger = Logger();
