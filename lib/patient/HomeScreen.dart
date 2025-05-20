@@ -3,8 +3,9 @@ import 'package:circle_nav_bar/circle_nav_bar.dart';
 import 'ProfileScreen.dart';
 import 'chat_screen.dart';
 import 'map_screen.dart';
+import '../screens/chat.dart';
 import '../screens/assessment_screen.dart';
-import '../screens/contacts.dart'; // Ajouter cet import
+import '../services/messagerieService.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -23,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
     const ProfileScreen(), // Profil
     MapScreen(), // Carte
     const ChatScreen(), // Garder le chat
-    const ChatListScreen(), // Ajouter l'écran des contacts
   ];
 
   @override
@@ -88,15 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(Icons.person, color: Colors.deepPurple), // Profil
           Icon(Icons.map, color: Colors.deepPurple), // Carte
           Icon(Icons.chat, color: Colors.deepPurple), // Garder le chat
-          Icon(Icons.contacts,
-              color: Colors.deepPurple), // Ajouter les contacts
         ],
         inactiveIcons: const [
           Text("Accueil"),
           Text("Profil"),
           Text("Carte"),
           Text("Chatbot"), // Garder le chatbot
-          Text("Contacts"), // Ajouter les contacts
         ],
         color: Colors.white,
         height: 60,
@@ -131,49 +128,270 @@ class HomeContent extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildContactDoctorCard(context),
+              const SizedBox(height: 16),
+              _buildJournalCard(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContactDoctorCard(BuildContext context) {
+    final MessagerieService _messagerieService = MessagerieService();
+
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.asset(
-              'assets/images/image 24.png',
-              width: 100.0,
-              height: 100.0,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 20.0),
-            const Text(
-              'N\'oubliez pas votre exercice de relaxation d\'aujourd\'hui!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16.0, color: Colors.white),
-            ),
-            const SizedBox(height: 30.0),
-            ElevatedButton.icon(
-              icon: Icon(Icons.psychology, color: Colors.deepPurple),
-              label: Text(
-                'Suivie de la journal',
-                style: TextStyle(color: Colors.deepPurple),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                elevation: 5,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AssessmentScreen(),
-                  ),
-                );
-              },
-            ),
+            _buildCardHeader(),
+            const SizedBox(height: 16),
+            _buildCardDescription(),
+            const SizedBox(height: 20),
+            _buildContactButton(context, _messagerieService),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCardHeader() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0E6FF),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.medical_services,
+            color: Color(0xFF8B94CD),
+            size: 28,
+          ),
+        ),
+        const SizedBox(width: 16),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Contacter un',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A4A4A),
+              ),
+            ),
+            Text(
+              'Médecin',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A4A4A),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardDescription() {
+    return const Text(
+      'Consultez nos professionnels de santé qualifiés pour un suivi personnalisé',
+      style: TextStyle(
+        fontSize: 16,
+        color: Colors.grey,
+      ),
+    );
+  }
+
+  Widget _buildContactButton(BuildContext context, MessagerieService messagerieService) {
+    return InkWell(
+      onTap: () => _showDoctorsList(context, messagerieService),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        decoration: BoxDecoration(
+          color: const Color(0xFF8B94CD),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Center(
+          child: Text(
+            'Commencer une discussion →',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDoctorsList(BuildContext context, MessagerieService messagerieService) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(20),
+            ),
+          ),
+          child: DoctorsList(
+            messagerieService: messagerieService,
+            scrollController: controller,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJournalCard(BuildContext context) {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: InkWell(
+        onTap: () => _navigateToAssessment(context),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              _buildJournalIcon(),
+              const SizedBox(width: 16),
+              const Text(
+                'Suivie de la journal',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF4A4A4A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJournalIcon() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0E6FF),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Icon(
+        Icons.psychology,
+        color: Color(0xFF8B94CD),
+        size: 28,
+      ),
+    );
+  }
+
+  void _navigateToAssessment(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssessmentScreen(),
+      ),
+    );
+  }
+}
+
+// Nouveau widget pour la liste des médecins
+class DoctorsList extends StatelessWidget {
+  final MessagerieService messagerieService;
+  final ScrollController scrollController;
+
+  const DoctorsList({
+    Key? key,
+    required this.messagerieService,
+    required this.scrollController,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          child: const Text(
+            'Sélectionnez un médecin',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: messagerieService.getUsers(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Erreur: ${snapshot.error}'));
+              }
+
+              final users = snapshot.data ?? [];
+
+              return ListView.builder(
+                controller: scrollController,
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: const Color(0xFFF0E6FF),
+                      child: Icon(
+                        Icons.person,
+                        color: Color(0xFF8B94CD),
+                      ),
+                    ),
+                    title: Text(user['name'] ?? ''),
+                    subtitle: Text(user['email'] ?? ''),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatDetailScreen(
+                            userId: user['id'].toString(),
+                            userName: user['name'] ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

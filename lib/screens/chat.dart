@@ -107,6 +107,63 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.dispose();
   }
 
+  Widget _buildMessageList(AsyncSnapshot<QuerySnapshot> snapshot) {
+    if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    }
+
+    if (!snapshot.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final messages = snapshot.data!.docs.reversed.toList();
+    return ListView.builder(
+      controller: scrollController,
+      reverse: false,
+      itemCount: messages.length,
+      itemBuilder: (context, index) => _buildMessageItem(messages[index]),
+    );
+  }
+
+  Widget _buildMessageItem(QueryDocumentSnapshot message) {
+    final messageData = message.data() as Map<String, dynamic>;
+    final currentUser = UserProvider.user;
+    final isMe = currentUser != null &&
+        messageData['senderId'].toString() == currentUser.id.toString();
+
+    final DateTime messageTime =
+        (messageData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+    return MessageBubble(
+      message: messageData['content'] ?? '',
+      isMe: isMe,
+      timestamp: messageTime,
+    );
+  }
+
+  Widget _buildMessageInput() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 24.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: messageController,
+              decoration: const InputDecoration(
+                hintText: 'Type a message...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,9 +173,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           PopupMenuButton(
             itemBuilder: (context) => [
               PopupMenuItem(
-                child: Text('Block User'),
+                child: const Text('Block User'),
                 onTap: () async {
                   await blockUser();
+                  if (!mounted) return;
                   Navigator.of(context).pop();
                 },
               ),
@@ -131,68 +189,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: getMessages(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final messages = snapshot.data!.docs.reversed.toList();
-
-                return ListView.builder(
-                  controller: scrollController,
-                  reverse: false,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message =
-                        messages[index].data() as Map<String, dynamic>;
-                    final currentUser = UserProvider.user;
-                    final isMe = currentUser != null &&
-                        message['sender'].toString() ==
-                            currentUser.id.toString();
-
-                    // Handle timestamp conversion safely
-                    DateTime messageTime;
-                    final createdAt = message['createdAt'];
-                    if (createdAt is Timestamp) {
-                      messageTime = createdAt.toDate();
-                    } else {
-                      messageTime = DateTime.now(); // Fallback to current time
-                    }
-
-                    return MessageBubble(
-                      message: message['content'] ?? '',
-                      isMe: isMe,
-                      timestamp: messageTime,
-                    );
-                  },
-                );
-              },
+              builder: (context, snapshot) => _buildMessageList(snapshot),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8.0, 8.0, 8.0, 24.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.send),
-                  onPressed: sendMessage,
-                ),
-              ],
-            ),
-          ),
+          _buildMessageInput(),
         ],
       ),
     );

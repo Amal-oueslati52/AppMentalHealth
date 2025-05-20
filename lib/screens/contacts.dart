@@ -51,16 +51,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPatient = UserProvider.user?.roleType.toUpperCase() == 'PATIENT';
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Chats'),
+            Text(isPatient ? 'Available Doctors' : 'My Patients'),
             Text(
               'Authenticated as: ${UserProvider.user?.email ?? "Not logged in"}',
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 14,
               ),
             ),
           ],
@@ -81,8 +83,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
             }
 
             if (_users.isEmpty) {
-              return const Center(
-                child: Text('No users found'),
+              return Center(
+                child: Text(
+                    isPatient ? 'No doctors available' : 'No patients found'),
               );
             }
 
@@ -92,10 +95,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 final user = _users[index];
                 return ListTile(
                   leading: CircleAvatar(
+                    backgroundColor: isPatient ? Colors.blue : Colors.green,
                     child: Text(user['name']?[0] ?? '?'),
                   ),
                   title: Text('${user['name']}'),
                   subtitle: Text(user['email']),
+                  trailing: Text(
+                    user['roleType']?.toString().toUpperCase() ?? '',
+                    style: TextStyle(
+                      color: isPatient ? Colors.blue : Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(

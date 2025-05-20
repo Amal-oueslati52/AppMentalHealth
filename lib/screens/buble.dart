@@ -15,7 +15,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeFormatted = DateFormat('hh:mm a').format(timestamp);
+    final timeFormatted = DateFormat('HH:mm').format(timestamp);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -24,13 +24,18 @@ class MessageBubble extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: isMe ? Colors.blue.shade200 : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(16),
+            color: isMe ? const Color(0xFFCA88CD) : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(isMe ? 16 : 0),
+              bottomRight: Radius.circular(isMe ? 0 : 16),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
                 blurRadius: 2,
-                offset: Offset(0, 1),
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -45,6 +50,7 @@ class MessageBubble extends StatelessWidget {
                 message,
                 style: TextStyle(
                   fontSize: 16,
+                  color: isMe ? Colors.white : Colors.black87,
                 ),
               ),
               const SizedBox(height: 4),
@@ -52,7 +58,9 @@ class MessageBubble extends StatelessWidget {
                 timeFormatted,
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.grey.shade700,
+                  color: isMe
+                      ? Colors.white.withOpacity(0.8)
+                      : Colors.grey.shade600,
                 ),
               ),
             ],
