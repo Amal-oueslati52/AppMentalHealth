@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'storage.dart';
+import 'package:app/patient/completePatientProfile.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -25,7 +26,7 @@ class AuthService {
   // Utiliser la bonne URL selon la plateforme
   static const String _iosBaseUrl = 'http://127.0.0.1:1337/api';
   static const String _androidBaseUrl =
-      'http://192.168.0.4:1337/api'; // Fixed URL
+      'http://192.168.1.242:1337/api'; // Fixed URL
   static final String baseUrl = Platform.isIOS ? _iosBaseUrl : _androidBaseUrl;
 
   Future<Map<String, dynamic>> login(String email, String password) async {
@@ -41,69 +42,26 @@ class AuthService {
         }),
       );
 
-      _logger.d('Login response: ${response.body}');
       final responseData = json.decode(response.body);
-
       if (response.statusCode == 200 && responseData['jwt'] != null) {
-        Map<String, dynamic> userData =
-            Map<String, dynamic>.from(responseData['user']);
-        final jwt = responseData['jwt'];
+        final userData = {
+          'jwt': responseData['jwt'],
+          'user': responseData['user']
+        };
 
-        try {
-          final doctorResponse = await http.get(
-            Uri.parse(
-                '$baseUrl/doctors?filters[users_permissions_user]=${userData['id']}&populate=*'),
-            headers: {'Authorization': 'Bearer $jwt'},
-          );
+        // Sauvegarder dans le stockage local
+        await _storage.saveUserData(userData);
+        _logger.i('✅ Auth data saved for: $email');
 
-          final doctorData = json.decode(doctorResponse.body);
-          _logger.d('Doctor data: $doctorData');
-
-          if (doctorData['data'] != null && doctorData['data'].isNotEmpty) {
-            final doctorInfo = doctorData['data'][0];
-            _logger.i('Found doctor profile with data: $doctorInfo');
-
-            userData.addAll({
-              'roleType': 'DOCTOR',
-              'doctor': doctorInfo,
-            });
-            await _storage.saveUserRole('DOCTOR');
-          } else {
-            userData.addAll({
-              'roleType': 'PATIENT',
-              'isApproved': true,
-            });
-            await _storage.saveUserRole('PATIENT');
-          }
-        } catch (e) {
-          _logger.e('Error checking doctor profile: $e');
-          userData.addAll({
-            'roleType': 'PATIENT',
-            'isApproved': true,
-          });
-          await _storage.saveUserRole('PATIENT');
-        }
-
-        await _saveUserData({
-          'jwt': jwt,
-          'user': userData,
-        });
-
-        _logger.d('Final user data before creating User object: $userData');
-        UserProvider.user = User.fromJson(userData);
-        return {'jwt': jwt, 'user': userData};
+        // Mettre à jour UserProvider
+        UserProvider.user = User.fromJson(responseData['user']);
+        return userData;
       } else {
-        final errorMessage =
-            responseData['error']?['message'] ?? 'Invalid credentials';
-        _logger.e('Login failed: $errorMessage');
-        throw Exception(errorMessage);
+        throw Exception(responseData['error']?['message'] ?? 'Login failed');
       }
     } catch (e) {
-      _logger.e('Login error details: $e');
-      if (e is FormatException) {
-        throw Exception('Server response was not in the expected format');
-      }
-      throw Exception(e.toString().replaceAll('Exception: ', ''));
+      _logger.e('❌ Login error: $e');
+      throw Exception('Login failed: $e');
     }
   }
 
@@ -115,12 +73,8 @@ class AuthService {
       _logger.i('Navigating for user - Role: ${user.roleType}');
 
       if (user.roleType.toUpperCase() == 'DOCTOR') {
-        // Debugger les données docteur reçues
-        _logger.d('Doctor data for navigation: ${user.doctor}');
-
-        // Vérification directe de isApproved à la racine de l'objet docteur
         final isApproved = user.doctor?['isApproved'] ?? false;
-        _logger.i('Doctor approval status: $isApproved (direct access)');
+        _logger.i('Doctor approval status: $isApproved');
 
         if (isApproved) {
           _logger.i('Doctor is approved -> DoctorHome');
@@ -136,17 +90,60 @@ class AuthService {
           );
         }
       } else {
-        // For patients, always go to HomeScreen
-        _logger.i('User is patient -> HomeScreen');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        // Modification ici pour vérifier si le profil patient est complet
+        final bool isProfileComplete = await _isPatientProfileComplete(user.id);
+        _logger.i('Patient profile complete status: $isProfileComplete');
+
+        if (isProfileComplete) {
+          _logger.i('Patient profile complete -> HomeScreen');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        } else if (context.mounted) {
+          // Ne rediriger vers CompletePatientProfile que lors de l'inscription
+          final bool isNewRegistration = await _storage.getIsNewRegistration();
+          if (isNewRegistration) {
+            _logger.i('New patient registration -> CompletePatientProfile');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CompletePatientProfile(
+                  userData: {'user': user.toString()},
+                ),
+              ),
+            );
+            // Réinitialiser le flag après la redirection
+            await _storage.setIsNewRegistration(false);
+          } else {
+            _logger.i('Existing patient -> HomeScreen');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            );
+          }
+        }
       }
     } catch (e) {
       _logger.e('Navigation error: $e');
-      showToast(message: "Navigation failed");
-      await logout(context);
+      if (context.mounted) {
+        showToast(message: "Navigation failed");
+        await logout(context);
+      }
+    }
+  }
+
+  Future<bool> _isPatientProfileComplete(int userId) async {
+    try {
+      final response = await _httpClient
+          .get('$baseUrl/patients?filters[users_permissions_user][id]=$userId');
+
+      return response != null &&
+          response['data'] != null &&
+          response['data'].isNotEmpty;
+    } catch (e) {
+      _logger.e('Error checking patient profile: $e');
+      return false;
     }
   }
 

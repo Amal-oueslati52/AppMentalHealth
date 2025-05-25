@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -5,6 +6,7 @@ class StorageService {
   static const String _userIdKey = 'user_id';
   static const String _lastLoginKey = 'last_login';
   static const String _userRoleKey = 'user_role';
+  static const String _isNewRegistrationKey = 'is_new_registration';
 
   // Singleton pattern
   static final StorageService _instance = StorageService._internal();
@@ -63,11 +65,51 @@ class StorageService {
     await prefs.clear();
   }
 
+  Future<void> saveUserData(Map<String, dynamic> userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (userData['jwt'] != null) {
+      await prefs.setString(_tokenKey, userData['jwt']);
+      await prefs.setString(_lastLoginKey, DateTime.now().toIso8601String());
+    }
+
+    if (userData['user'] != null) {
+      final user = userData['user'];
+      await prefs.setString(_userIdKey, user['id'].toString());
+      await prefs.setString(
+          _userRoleKey, user['roleType'].toString().toUpperCase());
+
+      // Sauvegarder les données complètes de l'utilisateur
+      await prefs.setString('user_data', json.encode(userData['user']));
+      print('✅ User data saved to storage: ${userData['user']}');
+    }
+  }
+
+  Future<Map<String, dynamic>?> getCachedUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userData = prefs.getString('user_data');
+    if (userData != null) {
+      return json.decode(userData);
+    }
+    return null;
+  }
+
   Future<void> clearAuthData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userIdKey);
     await prefs.remove(_lastLoginKey);
     await prefs.remove(_userRoleKey);
+    await prefs.remove('user_data');
+    print('🗑️ Auth data cleared from storage');
+  }
+
+  Future<void> setIsNewRegistration(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isNewRegistrationKey, value);
+  }
+
+  Future<bool> getIsNewRegistration() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_isNewRegistrationKey) ?? false;
   }
 }

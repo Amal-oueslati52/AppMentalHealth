@@ -180,18 +180,22 @@ Assistant de la santé mentale - Directives:
       );
 
       if (response.statusCode == 200) {
-        final responseContent = response.data['choices'][0]['message']['content'];
+        final responseContent =
+            response.data['choices'][0]['message']['content'];
 
         // Sauvegarder la conversation avec le bon ID
         final user = UserProvider.user;
         if (user?.id != null) {
           await _conversationStorage.saveConversation(
-            messages: messages.map((m) => {
-              'content': m.content,
-              'isUser': m.isUser,
-              'timestamp': DateTime.now().toIso8601String(),
-            }).toList(),
-            userId: user!.id.toString(), // Changed: using userId instead of patientId
+            messages: messages
+                .map((m) => {
+                      'content': m.content,
+                      'isUser': m.isUser,
+                      'timestamp': DateTime.now().toIso8601String(),
+                    })
+                .toList(),
+            userId: user!.id
+                .toString(), // Changed: using userId instead of patientId
           );
         }
 
@@ -237,6 +241,12 @@ Assistant de la santé mentale - Directives:
   Future<Map<String, dynamic>> continueAssessment(
       List<Message> conversation, String userId, String language) async {
     try {
+      // Vérifier l'authentification d'abord
+      final user = await getCurrentUser();
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
       if (conversation.isEmpty) {
         throw Exception('No conversation history');
       }
@@ -266,17 +276,22 @@ Assistant de la santé mentale - Directives:
 
       if (isReport) {
         print('📝 Saving assessment for user ID: $userId');
+        try {
+          final session = AssessmentSession(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            userId: userId,
+            timestamp: DateTime.now(),
+            conversation: conversation,
+            report: content,
+            isComplete: true,
+          );
 
-        final session = AssessmentSession(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          userId: userId,
-          timestamp: DateTime.now(),
-          conversation: conversation,
-          report: content,
-          isComplete: true,
-        );
-
-        await _storageService.saveSession(session);
+          await _storageService.saveSession(session);
+          print('✅ Assessment saved successfully');
+        } catch (e) {
+          print('❌ Error saving assessment: $e');
+          // Continue quand même pour retourner le rapport
+        }
       }
 
       return {
@@ -287,7 +302,7 @@ Assistant de la santé mentale - Directives:
       };
     } catch (e) {
       print('❌ Error in continueAssessment: $e');
-      throw e;
+      rethrow;
     }
   }
 

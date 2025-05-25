@@ -115,41 +115,26 @@ class MessagerieService extends ChangeNotifier {
     }
 
     final response = await _httpClient.get('${AuthService.baseUrl}/users');
-    final currentUser = UserProvider.user;
-
-    if (currentUser == null) return [];
-
-    final List<Map<String, dynamic>> allUsers = _parseUsers(response);
-    return _filterUsersByRole(allUsers, currentUser.roleType);
-  }
-
-  List<Map<String, dynamic>> _parseUsers(dynamic response) {
     if (response is List) {
-      return response.map(_mapUser).toList();
+      return response
+          .map((user) => {
+                'id': user['id'].toString(),
+                'name': user['name'] ?? user['username'] ?? '',
+                'email': user['email'] ?? '',
+              })
+          .toList();
     } else if (response is Map && response.containsKey('data')) {
-      return (response['data'] as List).map(_mapUser).toList();
+      final List<dynamic> data = response['data'];
+      return data.map((user) {
+        final attrs = user['attributes'];
+        return {
+          'id': user['id'].toString(),
+          'name': attrs['name'] ?? attrs['username'] ?? '',
+          'email': attrs['email'] ?? '',
+        };
+      }).toList();
     }
     return [];
-  }
-
-  Map<String, dynamic> _mapUser(dynamic user) {
-    final attrs = user is Map ? user['attributes'] ?? user : user;
-    return {
-      'id': user['id'].toString(),
-      'name': attrs['name'] ?? attrs['username'] ?? '',
-      'email': attrs['email'] ?? '',
-      'roleType': attrs['roleType'] ?? 'PATIENT',
-    };
-  }
-
-  List<Map<String, dynamic>> _filterUsersByRole(
-      List<Map<String, dynamic>> users, String currentUserRole) {
-    final upperRole = currentUserRole.toUpperCase();
-    return users.where((user) {
-      final userRole = (user['roleType'] ?? '').toString().toUpperCase();
-      return (upperRole == 'PATIENT' && userRole == 'DOCTOR') ||
-          (upperRole == 'DOCTOR' && userRole == 'PATIENT');
-    }).toList();
   }
 
   // Get all users except blocked users
