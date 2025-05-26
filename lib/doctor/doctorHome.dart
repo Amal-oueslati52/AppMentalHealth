@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../user_provider.dart';
 import 'doctor_cabinets_screen.dart';
 import 'doctor_profile_view.dart';
+import 'doctor_chat_screen.dart';
 
 class DoctorHome extends StatelessWidget {
   @override
@@ -55,6 +56,15 @@ class DoctorHome extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              _buildMenuCard(
+                icon: Icons.chat,
+                title: 'Messagerie',
+                subtitle: 'Communiquer avec vos patients',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DoctorChatScreen()),
+                ),
+              ),
               _buildMenuCard(
                 icon: Icons.business,
                 title: 'Mes Cabinets',

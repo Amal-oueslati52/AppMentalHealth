@@ -75,7 +75,7 @@ class AssessmentStorageService {
         throw Exception('No auth token found');
       }
 
-      // Corriger la structure exacte du payload selon Strapi/Postman
+      // Simplified payload without timestamp - let Strapi handle it
       final payload = {
         'data': {
           'type': 'ASSESSMENT',
@@ -83,7 +83,6 @@ class AssessmentStorageService {
             'text': session.report // Le message principal
           },
           'patient': patientDocumentId, // ID direct sans connect array
-          'timestamp': DateTime.now().toIso8601String()
         }
       };
 

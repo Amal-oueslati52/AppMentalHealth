@@ -114,27 +114,67 @@ class MessagerieService extends ChangeNotifier {
       throw Exception('Authentication required');
     }
 
-    final response = await _httpClient.get('${AuthService.baseUrl}/users');
-    if (response is List) {
-      return response
-          .map((user) => {
+    try {
+      final currentUser = UserProvider.user;
+      if (currentUser == null) return [];
+
+      final currentRole = currentUser.roleType.toUpperCase();
+      print('🔍 Current user role: $currentRole');
+
+      // Construction de l'URL en fonction du rôle
+      String url = '';
+      if (currentRole == 'PATIENT') {
+        // Pour les patients, obtenir les docteurs approuvés
+        url =
+            '${AuthService.baseUrl}/users?populate[doctor][populate]=*&filters[roleType]=DOCTOR';
+      } else if (currentRole == 'DOCTOR') {
+        // Pour les docteurs, obtenir tous les patients
+        url =
+            '${AuthService.baseUrl}/users?filters[roleType]=PATIENT&populate=*';
+      }
+
+      final response = await _httpClient.get(url);
+      print('📥 Raw API Response: $response');
+
+      final List<Map<String, dynamic>> filteredUsers = [];
+
+      if (response is List) {
+        // Traitement direct si c'est une liste
+        for (var user in response) {
+          if (user is! Map) continue;
+
+          if (currentRole == 'PATIENT') {
+            // Vérifier si le docteur est approuvé
+            final doctor = user['doctor'];
+            final isApproved = doctor?['isApproved'] ?? false;
+
+            if (isApproved) {
+              filteredUsers.add({
                 'id': user['id'].toString(),
-                'name': user['name'] ?? user['username'] ?? '',
+                'name': user['name'] ?? user['username'] ?? 'Unknown',
                 'email': user['email'] ?? '',
-              })
-          .toList();
-    } else if (response is Map && response.containsKey('data')) {
-      final List<dynamic> data = response['data'];
-      return data.map((user) {
-        final attrs = user['attributes'];
-        return {
-          'id': user['id'].toString(),
-          'name': attrs['name'] ?? attrs['username'] ?? '',
-          'email': attrs['email'] ?? '',
-        };
-      }).toList();
+                'roleType': 'DOCTOR',
+                'speciality': doctor?['speciality'] ?? '',
+              });
+            }
+          } else if (currentRole == 'DOCTOR' &&
+              user['roleType']?.toString().toUpperCase() == 'PATIENT') {
+            filteredUsers.add({
+              'id': user['id'].toString(),
+              'name': user['name'] ?? user['username'] ?? 'Unknown',
+              'email': user['email'] ?? '',
+              'roleType': 'PATIENT',
+            });
+          }
+        }
+      }
+
+      print('✅ Filtered users: ${filteredUsers.length}');
+      return filteredUsers;
+    } catch (e) {
+      print('❌ Error fetching users: $e');
+      return [];
     }
-    return [];
   }
 
   // Get all users except blocked users

@@ -77,7 +77,7 @@ class ChatService {
   };
 
   final String apiUrl = Platform.isAndroid
-      ? 'http://192.168.0.2:1337/api'
+      ? 'http://192.168.1.242:1337/api'
       : 'http://localhost:1337/api';
 
   // Méthode pour formater les messages avant de les envoyer à l'API
