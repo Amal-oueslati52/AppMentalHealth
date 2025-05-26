@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'storage.dart';
 import 'package:app/patient/completePatientProfile.dart';
+import 'messagerieService.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -33,6 +34,16 @@ class AuthService {
     try {
       _logger.i('Attempting login for: $email');
 
+      // 1. Clear all existing data
+      await _storage.clearAll();
+      await _storage.clearAuthData();
+      UserProvider.user = null;
+
+      // Clear Firebase messaging cache
+      final messagingService = MessagerieService();
+      await messagingService.clearMessagingCache();
+
+      // 2. Proceed with login
       final response = await http.post(
         Uri.parse('$baseUrl/auth/local'),
         headers: {'Content-Type': 'application/json'},
@@ -49,11 +60,11 @@ class AuthService {
           'user': responseData['user']
         };
 
-        // Sauvegarder dans le stockage local
+        // 2. Save new user data
         await _storage.saveUserData(userData);
         _logger.i('✅ Auth data saved for: $email');
 
-        // Mettre à jour UserProvider
+        // 3. Update UserProvider with fresh data
         UserProvider.user = User.fromJson(responseData['user']);
         return userData;
       } else {
@@ -337,20 +348,27 @@ class AuthService {
     _logger.i('Logging out current user');
 
     try {
+      // 1. Clear Strapi data
       await _storage.clearAll();
+      await _storage.clearAuthData();
       UserProvider.user = null;
+
+      // 2. Clear Firebase cache
+      final messagingService = MessagerieService();
+      await messagingService.clearMessagingCache();
 
       if (!context.mounted) return;
 
+      // 3. Navigate to login
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const Login()),
         (Route<dynamic> route) => false,
       );
 
-      _logger.i('User logged out successfully');
+      _logger.i('✅ Logout successful, all caches cleared');
     } catch (e) {
-      _logger.e('Error during logout process: ${e.toString()}');
-      throw Exception('Logout failed: ${e.toString()}');
+      _logger.e('❌ Error during logout: $e');
+      throw Exception('Logout failed: $e');
     }
   }
 

@@ -115,11 +115,12 @@ class MessagerieService extends ChangeNotifier {
     }
 
     try {
-      final currentUser = UserProvider.user;
-      if (currentUser == null) return [];
+      // Force refresh current user
+      final authService = AuthService();
+      final freshUser = await authService.getCurrentUser();
+      final currentRole = freshUser.roleType.toUpperCase();
 
-      final currentRole = currentUser.roleType.toUpperCase();
-      print('🔍 Current user role: $currentRole');
+      print('🔍 Fresh user role from getCurrentUser: $currentRole');
 
       // Construction de l'URL en fonction du rôle
       String url = '';
@@ -232,5 +233,16 @@ class MessagerieService extends ChangeNotifier {
     final response =
         await _httpClient.get('${AuthService.baseUrl}/blocked-users');
     return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<void> clearMessagingCache() async {
+    try {
+      // Clear Firebase cache
+      await _firestore.terminate();
+      await _firestore.clearPersistence();
+      print('🗑️ Firebase messaging cache cleared');
+    } catch (e) {
+      print('❌ Error clearing Firebase cache: $e');
+    }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:app/providers/user_provider.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';
@@ -60,9 +61,29 @@ class StorageService {
     return difference.inDays < 30; // Session expire après 30 jours
   }
 
+  Future<void> clearAuthData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+    await prefs.remove(_userIdKey);
+    await prefs.remove(_lastLoginKey);
+    await prefs.remove(_userRoleKey);
+    await prefs.remove('user_data');
+    await prefs.remove('current_role');
+
+    // Force clear user provider
+    await UserProvider.clearUser();
+
+    print('🗑️ Auth data and user provider cleared');
+  }
+
   Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
+
+    // Force clear user provider
+    await UserProvider.clearUser();
+
+    print('🗑️ All storage data and user provider cleared');
   }
 
   Future<void> saveUserData(Map<String, dynamic> userData) async {
@@ -91,16 +112,6 @@ class StorageService {
       return json.decode(userData);
     }
     return null;
-  }
-
-  Future<void> clearAuthData() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userIdKey);
-    await prefs.remove(_lastLoginKey);
-    await prefs.remove(_userRoleKey);
-    await prefs.remove('user_data');
-    print('🗑️ Auth data cleared from storage');
   }
 
   Future<void> setIsNewRegistration(bool value) async {

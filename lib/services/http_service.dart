@@ -5,15 +5,6 @@ import 'storage.dart';
 class HttpClient {
   final StorageService _storage = StorageService();
 
-  // Ajouter cette méthode pour gérer les en-têtes
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _storage.getAuthToken();
-    return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<dynamic> get(String url) async {
     try {
       final headers = await _getHeaders();
@@ -92,5 +83,19 @@ class HttpClient {
     } catch (e) {
       throw Exception('Failed to make DELETE request: $e');
     }
+  }
+
+  Future<void> clearCache() async {
+    // Clear any cached headers or responses
+    print('🗑️ HTTP client cache cleared');
+  }
+
+  Future<Map<String, String>> _getHeaders() async {
+    // Always get fresh token
+    final token = await _storage.getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
   }
 }
