@@ -27,7 +27,7 @@ class AuthService {
   // Utiliser la bonne URL selon la plateforme
   static const String _iosBaseUrl = 'http://127.0.0.1:1337/api';
   static const String _androidBaseUrl =
-      'http://192.168.1.242:1337/api'; // Fixed URL
+      'http://192.168.208.250:1337/api'; // Fixed URL
   static final String baseUrl = Platform.isIOS ? _iosBaseUrl : _androidBaseUrl;
 
   Future<Map<String, dynamic>> login(String email, String password) async {

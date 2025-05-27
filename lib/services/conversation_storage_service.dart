@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class ConversationStorageService {
   final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.1.242:1337/api'
+      ? 'http://192.168.208.250:1337/api'
       : 'http://localhost:1337/api';
 
   Future<void> saveConversation({

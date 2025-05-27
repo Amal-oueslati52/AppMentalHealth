@@ -85,16 +85,31 @@ class MessagerieService extends ChangeNotifier {
 
   // Get messages
   Stream<QuerySnapshot> getMessages(String userId, otherUserId) async* {
-    if (!await _ensureAuthenticated()) {
-      throw Exception('Authentication required');
-    }
-
     try {
+      if (!await _ensureAuthenticated()) {
+        print('❌ Authentication required');
+        yield* Stream.empty();
+        return;
+      }
+
+      // Create unique chat room ID
       List<String> ids = [userId, otherUserId];
       ids.sort();
       String chatRoomID = ids.join("_");
 
-      print('Fetching messages from chats/$chatRoomID/messages');
+      print('📥 Getting messages from room: $chatRoomID');
+
+      // Verify the chat room exists
+      final chatDoc =
+          await _firestore.collection("chats").doc(chatRoomID).get();
+
+      if (!chatDoc.exists) {
+        // Create chat room if it doesn't exist
+        await _firestore.collection("chats").doc(chatRoomID).set({
+          'participants': ids,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
       yield* _firestore
           .collection("chats")
@@ -103,8 +118,8 @@ class MessagerieService extends ChangeNotifier {
           .orderBy("createdAt", descending: true)
           .snapshots();
     } catch (e) {
-      print('Error getting messages: $e');
-      throw Exception('Failed to load messages: $e');
+      print('❌ Error getting messages: $e');
+      yield* Stream.empty();
     }
   }
 

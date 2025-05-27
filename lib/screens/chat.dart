@@ -1,6 +1,7 @@
 import 'package:app/screens/buble.dart';
 import 'package:app/services/messagerieService.dart';
 import 'package:app/providers/user_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -23,10 +24,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
 
+  bool _isInitialized = false;
+  String? _error;
+
   @override
   void initState() {
     super.initState();
-    _checkAuthentication();
+    _initializeChat();
+  }
+
+  Future<void> _initializeChat() async {
+    try {
+      await _checkAuthentication();
+      
+      // Verify Firebase is initialized
+      if (!Firebase.apps.isNotEmpty) {
+        await Firebase.initializeApp();
+      }
+      
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('❌ Error initializing chat: $e');
+      setState(() {
+        _error = e.toString();
+      });
+    }
   }
 
   Future<void> _checkAuthentication() async {
@@ -73,20 +97,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  // Get messages between current user and receiver
   Stream<QuerySnapshot> getMessages() {
-    if (!UserProvider.isAuthenticated) {
+    try {
+      if (!_isInitialized) {
+        return Stream.empty();
+      }
+
+      final currentUser = UserProvider.user;
+      if (currentUser == null) {
+        return Stream.empty();
+      }
+
+      // Create sorted room ID
+      List<String> ids = [currentUser.id.toString(), widget.userId];
+      ids.sort();
+      String chatRoomID = ids.join("_");
+
+      print('📱 Fetching messages for room: $chatRoomID');
+
+      return FirebaseFirestore.instance
+          .collection("chats")
+          .doc(chatRoomID)
+          .collection("messages")
+          .orderBy("createdAt", descending: true)
+          .snapshots();
+    } catch (e) {
+      print('❌ Error getting messages: $e');
       return Stream.empty();
     }
-    final currentUser = UserProvider.user;
-    if (currentUser == null) {
-      // Return an empty stream if no user is logged in
-      return Stream.empty();
-    }
-    return _messagerieService.getMessages(
-      currentUser.id.toString(),
-      widget.userId,
-    );
   }
 
   // Block a user
@@ -166,6 +204,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.userName)),
+        body: Center(
+          child: _error != null
+              ? Text('Error: $_error')
+              : CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.userName),
