@@ -14,6 +14,7 @@ import 'package:logger/logger.dart';
 import 'storage.dart';
 import 'package:app/patient/completePatientProfile.dart';
 import 'messagerieService.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -25,10 +26,9 @@ class AuthService {
   final HttpClient _httpClient = HttpClient();
 
   // Utiliser la bonne URL selon la plateforme
-  static const String _iosBaseUrl = 'http://127.0.0.1:1337/api';
-  static const String _androidBaseUrl =
-      'http://192.168.208.250:1337/api'; // Fixed URL
-  static final String baseUrl = Platform.isIOS ? _iosBaseUrl : _androidBaseUrl;
+  static final String baseUrl = Platform.isAndroid
+      ? dotenv.env['API_URL_ANDROID']!
+      : dotenv.env['API_URL_IOS']!;
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {

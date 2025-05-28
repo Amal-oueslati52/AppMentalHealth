@@ -77,8 +77,8 @@ class ChatService {
   };
 
   final String apiUrl = Platform.isAndroid
-      ? 'http://192.168.208.250:1337/api'
-      : 'http://localhost:1337/api';
+      ? dotenv.env['API_URL_ANDROID']!
+      : dotenv.env['API_URL_IOS']!;
 
   // Méthode pour formater les messages avant de les envoyer à l'API
   List<Map<String, String>> _prepareMessages(List<Message> messages,

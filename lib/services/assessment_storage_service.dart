@@ -3,11 +3,12 @@ import '../models/assessment_session.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:app/services/strapi_auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AssessmentStorageService {
   final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.208.250:1337/api'
-      : 'http://localhost:1337/api';
+      ? dotenv.env['API_URL_ANDROID']!
+      : dotenv.env['API_URL_IOS']!;
 
   Future<bool> checkPatientExists(String patientId) async {
     try {

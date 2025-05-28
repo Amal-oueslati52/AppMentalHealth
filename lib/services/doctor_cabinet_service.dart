@@ -4,12 +4,13 @@ import 'dart:convert';
 import 'package:logger/logger.dart';
 import '../models/cabinet.dart';
 import 'strapi_auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class DoctorCabinetService {
   final AuthService _authService = AuthService();
   final String baseUrl = Platform.isAndroid
-      ? 'http://192.168.208.250:1337/api'
-      : 'http://localhost:1337/api';
+      ? dotenv.env['API_URL_ANDROID']!
+      : dotenv.env['API_URL_IOS']!;
 
   final Logger logger = Logger();
 

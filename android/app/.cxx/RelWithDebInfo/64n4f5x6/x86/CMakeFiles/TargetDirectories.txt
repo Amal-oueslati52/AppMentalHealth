@@ -1,0 +1,2 @@
+C:/FlutterApps/AppMentalHealth/android/app/.cxx/RelWithDebInfo/64n4f5x6/x86/CMakeFiles/edit_cache.dir
+C:/FlutterApps/AppMentalHealth/android/app/.cxx/RelWithDebInfo/64n4f5x6/x86/CMakeFiles/rebuild_cache.dir

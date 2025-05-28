@@ -36,7 +36,7 @@ Future<void> main() async {
   } catch (e) {
     print("❌ Error initializing Firebase: $e");
   }
-
+  
   await dotenv.load(fileName: ".env");
   print("Environment variables loaded");
   runApp(const MyApp());

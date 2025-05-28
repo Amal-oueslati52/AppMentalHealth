@@ -58,7 +58,7 @@ dependencies:
 
   # Notifications
   firebase_messaging: ^14.6.5
-  permission_handler: ^10.2.0
+  permission_handler: ^11.3.0  # Updated from ^10.2.0
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.3
