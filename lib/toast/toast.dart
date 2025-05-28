@@ -1,14 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:another_flushbar/flushbar.dart';
 
 void showToast({required String message}) {
-  Fluttertoast.showToast(
-    msg: message,
-    toastLength: Toast.LENGTH_SHORT,
-    gravity: ToastGravity.BOTTOM,
-    timeInSecForIosWeb: 1,
+  // Get global navigator key if available
+  final context = GlobalKey<NavigatorState>().currentContext;
+  if (context == null) {
+    print('⚠️ No context available for showing toast');
+    return;
+  }
+
+  Flushbar(
+    message: message,
+    duration: const Duration(seconds: 3),
+    margin: const EdgeInsets.all(8),
+    borderRadius: BorderRadius.circular(8),
     backgroundColor: Colors.black87,
-    textColor: Colors.white,
-    fontSize: 16.0,
-  );
+    messageColor: Colors.white,
+    flushbarPosition: FlushbarPosition.BOTTOM,
+  ).show(context);
+}
+
+// Nouvelle méthode avec contexte explicite
+void showToastWithContext(BuildContext context, {required String message}) {
+  Flushbar(
+    message: message,
+    duration: const Duration(seconds: 3),
+    margin: const EdgeInsets.all(8),
+    borderRadius: BorderRadius.circular(8),
+    backgroundColor: Colors.black87,
+    messageColor: Colors.white,
+    flushbarPosition: FlushbarPosition.BOTTOM,
+  ).show(context);
 }

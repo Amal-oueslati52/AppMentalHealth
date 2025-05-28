@@ -3,7 +3,7 @@ import 'package:app/patient/login.dart';
 import 'package:app/patient/HomeScreen.dart';
 import 'package:app/doctor/doctorHome.dart';
 import 'package:app/doctor/pending_approval_screen.dart';
-import 'package:app/doctor/completeProfileDoctor.dart';
+import 'package:app/doctor/complete_profile_doctor.dart';
 import 'package:app/patient/completePatientProfile.dart';
 import 'package:app/services/strapi_auth_service.dart';
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app/toast/toast.dart';
 import 'package:logger/logger.dart';
 import 'package:app/patient/completePatientProfile.dart';
-import 'package:app/doctor/completeProfileDoctor.dart';
+import 'package:app/doctor/complete_profile_doctor.dart';
 import 'package:app/models/user_role.dart';
 
 class SignUp extends StatefulWidget {
