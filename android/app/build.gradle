@@ -21,7 +21,7 @@ kotlinOptions {
     jvmTarget = "17"
 }
       defaultConfig {
-        applicationId "com.example.appmentalhealth"  // Changed from "com.example.app"
+        applicationId "com.example.app"  // Changed from "com.example.app"
         minSdk 23       // Mets une valeur compatible (21+ pour Firebase)
         targetSdk 35    // Mets la même version que compileSdk
         versionCode 1
