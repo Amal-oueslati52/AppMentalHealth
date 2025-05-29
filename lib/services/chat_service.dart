@@ -22,6 +22,10 @@ class ChatService {
   final ConversationStorageService _conversationStorage =
       ConversationStorageService();
 
+  static const int maxRetries = 3;
+  static const Duration retryDelay = Duration(seconds: 2);
+  static const Duration timeout = Duration(seconds: 30);
+
   final Map<String, List<Map<String, String>>> _psychAssessment = {
     'fr': [
       {
@@ -160,24 +164,58 @@ Assistant de la santé mentale - Directives:
     }
   }
 
+  // Helper method to make requests with retry logic
+  Future<Response> _makeRequestWithRetry(
+      Future<Response> Function() request) async {
+    int attempts = 0;
+    while (attempts < maxRetries) {
+      try {
+        return await request();
+      } catch (e) {
+        attempts++;
+        if (e is DioException) {
+          if (e.type == DioExceptionType.connectionError ||
+              e.type == DioExceptionType.connectionTimeout ||
+              (e.message?.contains('Connection reset by peer') ?? false)) {
+            if (attempts == maxRetries) {
+              throw Exception(
+                  'Failed to connect to Groq API after $maxRetries attempts: ${e.message}');
+            }
+            print(
+                'Retrying request after connection error (attempt $attempts of $maxRetries)');
+            await Future.delayed(retryDelay * attempts);
+            continue;
+          }
+        }
+        if (attempts == maxRetries) {
+          throw Exception('Failed after $maxRetries attempts: $e');
+        }
+        await Future.delayed(retryDelay * attempts);
+      }
+    }
+    throw Exception('Failed to connect to Groq API after $maxRetries attempts');
+  }
+
   // Méthode pour envoyer un message et récupérer la réponse du chatbot
   Future<String> sendMessage(List<Message> messages) async {
     try {
-      final response = await _dio.post(
-        _baseUrl,
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
+      final response = await _makeRequestWithRetry(() async {
+        return await _dio.post(
+          _baseUrl,
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
+            },
+          ),
+          data: {
+            'messages': _prepareMessages(messages),
+            'model': 'llama-3.3-70b-versatile',
+            'temperature': 0.7,
+            'max_tokens': 150,
           },
-        ),
-        data: {
-          'messages': _prepareMessages(messages),
-          'model': 'llama-3.3-70b-versatile',
-          'temperature': 0.7,
-          'max_tokens': 150,
-        },
-      );
+        );
+      });
 
       if (response.statusCode == 200) {
         final responseContent =
@@ -210,19 +248,28 @@ Assistant de la santé mentale - Directives:
   // Méthode pour démarrer une auto-évaluation
   Future<Map<String, dynamic>> startAssessment(String language) async {
     try {
-      final response = await _dio.post(
-        _baseUrl,
-        options: Options(headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
-        }),
-        data: {
-          'messages': _prepareMessages([],
-              isAssessment: true, selectedLanguage: language),
-          'model': 'llama-3.3-70b-versatile',
-          'temperature': 0.7,
-        },
-      );
+      final response = await _makeRequestWithRetry(() => _dio.post(
+            _baseUrl,
+            options: Options(
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
+              },
+              sendTimeout: timeout,
+              receiveTimeout: timeout,
+            ),
+            data: {
+              'messages': _prepareMessages([],
+                  isAssessment: true, selectedLanguage: language),
+              'model': 'llama-3.3-70b-versatile',
+              'temperature': 0.7,
+            },
+          ));
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to get response from API: ${response.statusCode}');
+      }
 
       final content = response.data['choices'][0]['message']['content'];
       return {
@@ -241,32 +288,33 @@ Assistant de la santé mentale - Directives:
   Future<Map<String, dynamic>> continueAssessment(
       List<Message> conversation, String userId, String language) async {
     try {
-      // Vérifier l'authentification d'abord
-      final user = await getCurrentUser();
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
       if (conversation.isEmpty) {
         throw Exception('No conversation history');
       }
 
-      final response = await _dio.post(
-        _baseUrl,
-        options: Options(headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
-        }),
-        data: {
-          'messages': _prepareMessages(conversation,
-              isAssessment: true, selectedLanguage: language),
-          'model': 'llama-3.3-70b-versatile',
-          'temperature': 0.7,
-        },
-      );
+      final response = await _makeRequestWithRetry(() => _dio.post(
+            _baseUrl,
+            options: Options(
+              headers: {
+                'Authorization': 'Bearer ${dotenv.env['GROQ_API_KEY']}',
+              },
+              sendTimeout: timeout,
+              receiveTimeout: timeout,
+            ),
+            data: {
+              'messages': _prepareMessages(conversation,
+                  isAssessment: true,
+                  questionCount: conversation.length ~/ 2,
+                  selectedLanguage: language),
+              'model': 'llama-3.3-70b-versatile',
+              'temperature': 0.7,
+              'max_tokens': 1000,
+            },
+          ));
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to get response from API');
+        throw Exception(
+            'Failed to get response from API: ${response.statusCode}');
       }
 
       final content = response.data['choices'][0]['message']['content'];
@@ -277,6 +325,21 @@ Assistant de la santé mentale - Directives:
       if (isReport) {
         print('📝 Saving assessment for user ID: $userId');
         try {
+          // Get patient document ID before saving
+          final patientDocId =
+              await _storageService.getPatientDocumentId(userId);
+          if (patientDocId == null) {
+            print(
+                '❌ Warning: Could not find patient document ID for user $userId');
+            return {
+              'message': content,
+              'timestamp': DateTime.now().toIso8601String(),
+              'type': 'continue',
+              'isReport': isReport,
+              'error': 'Patient profile not found'
+            };
+          }
+
           final session = AssessmentSession(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             userId: userId,
@@ -287,22 +350,23 @@ Assistant de la santé mentale - Directives:
           );
 
           await _storageService.saveSession(session);
-          print('✅ Assessment saved successfully');
+          print(
+              '✅ Assessment saved successfully with patient ID: $patientDocId');
         } catch (e) {
           print('❌ Error saving assessment: $e');
-          // Continue quand même pour retourner le rapport
+          // Continue despite save error to return the response to the user
         }
       }
 
       return {
         'message': content,
         'timestamp': DateTime.now().toIso8601String(),
-        'type': isReport ? 'report' : 'question',
-        'isComplete': isReport,
+        'type': 'continue',
+        'isReport': isReport,
       };
     } catch (e) {
-      print('❌ Error in continueAssessment: $e');
-      rethrow;
+      print('❌ Error continuing assessment: $e');
+      throw Exception('Failed to continue assessment: $e');
     }
   }
 

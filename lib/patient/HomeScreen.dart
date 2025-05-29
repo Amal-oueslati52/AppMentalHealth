@@ -4,8 +4,9 @@ import 'ProfileScreen.dart';
 import 'chat_screen.dart';
 import 'map_screen.dart';
 import '../screens/chat.dart';
-import '../screens/assessment_screen.dart';
+import '../patient/assessment_screen.dart';
 import '../services/messagerieService.dart';
+import 'assessment_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -218,7 +219,8 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildContactButton(BuildContext context, MessagerieService messagerieService) {
+  Widget _buildContactButton(
+      BuildContext context, MessagerieService messagerieService) {
     return InkWell(
       onTap: () => _showDoctorsList(context, messagerieService),
       child: Container(
@@ -242,7 +244,8 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  void _showDoctorsList(BuildContext context, MessagerieService messagerieService) {
+  void _showDoctorsList(
+      BuildContext context, MessagerieService messagerieService) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -273,25 +276,62 @@ class HomeContent extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
-      child: InkWell(
-        onTap: () => _navigateToAssessment(context),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              _buildJournalIcon(),
-              const SizedBox(width: 16),
-              const Text(
-                'Suivie de la journal',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF4A4A4A),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: () => _navigateToAssessment(context),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  _buildJournalIcon(),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Suivie de la journal',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF4A4A4A),
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Color(0xFF8B94CD)),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+          const Divider(height: 1),
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AssessmentHistoryScreen(),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.history, color: Color(0xFF8B94CD)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Voir l\'historique',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF8B94CD),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
