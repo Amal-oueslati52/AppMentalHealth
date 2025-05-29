@@ -15,6 +15,7 @@ import 'storage.dart';
 import 'package:app/patient/completePatientProfile.dart';
 import 'messagerieService.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -43,7 +44,11 @@ class AuthService {
       final messagingService = MessagerieService();
       await messagingService.clearMessagingCache();
 
-      // 2. Proceed with login
+      // 2. Get FCM token
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      _logger.i('Got FCM token: $fcmToken');
+
+      // 3. Proceed with login
       final response = await http.post(
         Uri.parse('$baseUrl/auth/local'),
         headers: {'Content-Type': 'application/json'},
@@ -60,11 +65,37 @@ class AuthService {
           'user': responseData['user']
         };
 
-        // 2. Save new user data
+        // 4. Save new user data
         await _storage.saveUserData(userData);
         _logger.i('✅ Auth data saved for: $email');
 
-        // 3. Update UserProvider with fresh data
+        // 5. Update FCM token on server
+        if (fcmToken != null) {
+          try {
+            final tokenUpdateResponse = await http.put(
+              Uri.parse('$baseUrl/notifications/update-token'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ${responseData['jwt']}',
+              },
+              body: json.encode({
+                'fcmToken': fcmToken,
+              }),
+            );
+
+            if (tokenUpdateResponse.statusCode == 200) {
+              _logger.i('✅ FCM token updated on server');
+            } else {
+              _logger.w(
+                  '⚠️ Failed to update FCM token: ${tokenUpdateResponse.body}');
+            }
+          } catch (e) {
+            _logger.e('❌ Error updating FCM token: $e');
+            // Don't throw here - we want the login to succeed even if token update fails
+          }
+        }
+
+        // 6. Update UserProvider with fresh data
         UserProvider.user = User.fromJson(responseData['user']);
         return userData;
       } else {
