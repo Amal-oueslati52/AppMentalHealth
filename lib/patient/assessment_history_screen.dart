@@ -56,14 +56,11 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
 
   Widget _buildAssessmentCard(Map<String, dynamic> assessment) {
     print('📝 Building card for assessment: ${assessment['id']}');
-    print('📊 Assessment data structure: $assessment');
-
-    // Get data directly from the assessment object structure
+    print(
+        '📊 Assessment data structure: $assessment'); // Get data directly from the assessment object structure
     final createdAt = _formatDate(assessment['createdAt']);
     final messageText =
         assessment['message']?['data']?['text'] ?? 'Pas de rapport disponible';
-    final conversation =
-        assessment['message']?['data']?['conversation'] as List? ?? [];
 
     return Card(
       elevation: 4,
@@ -81,7 +78,7 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           title: Text(
-            'Évaluation du $createdAt',
+            'Rapport du $createdAt',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -101,49 +98,8 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (conversation.isNotEmpty) ...[
-                    const Text(
-                      'Conversation:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...conversation
-                        .map((msg) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    msg['isUser']
-                                        ? Icons.person
-                                        : Icons.psychology,
-                                    size: 20,
-                                    color: const Color(0xFF8B94CD),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      msg['content'] ?? '',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: msg['isUser']
-                                            ? Colors.black87
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                    const Divider(height: 24),
-                  ],
                   const Text(
-                    'Synthèse:',
+                    'Rapport:',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -173,7 +129,7 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Historique des évaluations',
+          'Historique des rapports',
           style: TextStyle(color: Colors.white),
         ),
         flexibleSpace: Container(
