@@ -40,15 +40,16 @@ class AuthService {
       await _storage.clearAuthData();
       UserProvider.user = null;
 
-      // Clear Firebase messaging cache
+      // Clear Firebase messaging cache and reset FCM token
       final messagingService = MessagerieService();
       await messagingService.clearMessagingCache();
-
-      // 2. Get FCM token
+      
+      // Force generate a new FCM token by deleting the old one first
+      await FirebaseMessaging.instance.deleteToken();
       final fcmToken = await FirebaseMessaging.instance.getToken();
-      _logger.i('Got FCM token: $fcmToken');
+      _logger.i('Got new FCM token: $fcmToken');
 
-      // 3. Proceed with login
+      // 2. Proceed with login
       final response = await http.post(
         Uri.parse('$baseUrl/auth/local'),
         headers: {'Content-Type': 'application/json'},
@@ -65,11 +66,11 @@ class AuthService {
           'user': responseData['user']
         };
 
-        // 4. Save new user data
+        // 3. Save new user data
         await _storage.saveUserData(userData);
         _logger.i('✅ Auth data saved for: $email');
 
-        // 5. Update FCM token on server
+        // 4. Update FCM token on server
         if (fcmToken != null) {
           try {
             final tokenUpdateResponse = await http.put(
@@ -86,8 +87,7 @@ class AuthService {
             if (tokenUpdateResponse.statusCode == 200) {
               _logger.i('✅ FCM token updated on server');
             } else {
-              _logger.w(
-                  '⚠️ Failed to update FCM token: ${tokenUpdateResponse.body}');
+              _logger.w('⚠️ Failed to update FCM token: ${tokenUpdateResponse.body}');
             }
           } catch (e) {
             _logger.e('❌ Error updating FCM token: $e');
@@ -95,7 +95,7 @@ class AuthService {
           }
         }
 
-        // 6. Update UserProvider with fresh data
+        // 5. Update UserProvider with fresh data
         UserProvider.user = User.fromJson(responseData['user']);
         return userData;
       } else {
@@ -379,18 +379,44 @@ class AuthService {
     _logger.i('Logging out current user');
 
     try {
-      // 1. Clear Strapi data
+      // 1. Delete FCM token from server
+      final token = await getAuthToken();
+      if (token != null) {
+        try {
+          // Get current FCM token
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            // Delete token from server
+            await http.delete(
+              Uri.parse('$baseUrl/notifications/delete-token'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $token',
+              },
+              body: json.encode({
+                'fcmToken': fcmToken,
+              }),
+            );
+            _logger.i('✅ FCM token deleted from server');
+          }
+        } catch (e) {
+          _logger.e('❌ Error deleting FCM token: $e');
+          // Continue with logout even if token deletion fails
+        }
+      }
+
+      // 2. Clear Strapi data
       await _storage.clearAll();
       await _storage.clearAuthData();
       UserProvider.user = null;
 
-      // 2. Clear Firebase cache
+      // 3. Clear Firebase cache
       final messagingService = MessagerieService();
       await messagingService.clearMessagingCache();
 
       if (!context.mounted) return;
 
-      // 3. Navigate to login
+      // 4. Navigate to login
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const Login()),
         (Route<dynamic> route) => false,
