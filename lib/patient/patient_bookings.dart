@@ -183,9 +183,16 @@ class _PatientBookingListState extends State<PatientBookingList>
                 height: 36,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isPaid ? Colors.green.withOpacity(0.1) : lightPurple,
-                    foregroundColor: isPaid ? Colors.green : Colors.black87,
+                    backgroundColor: isPaid
+                        ? Colors.green.withOpacity(0.1)
+                        : state.toUpperCase() == 'CONFIRMED'
+                            ? Colors.green
+                            : lightPurple,
+                    foregroundColor: isPaid
+                        ? Colors.green
+                        : state.toUpperCase() == 'CONFIRMED'
+                            ? Colors.white
+                            : Colors.black87,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     elevation: isPaid ? 0 : 2,
                   ),
@@ -197,7 +204,7 @@ class _PatientBookingListState extends State<PatientBookingList>
                     isPaid ? "Payé" : "Payer",
                     style: const TextStyle(fontSize: 13),
                   ),
-                  onPressed: isPaid
+                  onPressed: isPaid || state.toUpperCase() != 'CONFIRMED'
                       ? null
                       : () async {
                           await showDialog(
