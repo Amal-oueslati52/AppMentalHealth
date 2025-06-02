@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/booking_service.dart';
 import '../user_provider.dart';
+import 'payment_dialog.dart';
 
 class PatientBookingList extends StatefulWidget {
   const PatientBookingList({Key? key}) : super(key: key);
@@ -10,16 +11,29 @@ class PatientBookingList extends StatefulWidget {
   _PatientBookingListState createState() => _PatientBookingListState();
 }
 
-class _PatientBookingListState extends State<PatientBookingList> {
+class _PatientBookingListState extends State<PatientBookingList>
+    with SingleTickerProviderStateMixin {
   final BookingService _bookingService = BookingService();
   List<dynamic> _onlineBookings = [];
   List<dynamic> _cabinetBookings = [];
   bool _isLoading = true;
+  late TabController _tabController;
+
+  // Définir les couleurs personnalisées
+  final Color lightPurple = Color(0xFFE5C1E5); // Violet clair pour les boutons
+  final Color mainPurple = Color(0xFFCA88CD); // Violet principal pour l'AppBar
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadReservations();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadReservations() async {
@@ -60,13 +74,6 @@ class _PatientBookingListState extends State<PatientBookingList> {
             consultationType == 'EN CABINET';
       }).toList();
 
-      print(
-          '📊 Found ${online.length} online and ${cabinet.length} cabinet reservations');
-      print(
-          '🔍 Online reservations: ${online.map((r) => r['attributes']['Consultation_type']).toList()}');
-      print(
-          '🔍 Cabinet reservations: ${cabinet.map((r) => r['attributes']['Consultation_type']).toList()}');
-
       if (mounted) {
         setState(() {
           _onlineBookings = online;
@@ -97,6 +104,9 @@ class _PatientBookingListState extends State<PatientBookingList> {
     final paymentStatus = attributes['payment_status'] ?? '';
     final consultationType =
         attributes['Consultation_type']?.toString().trim().toUpperCase() ?? '';
+    final isPaid = paymentStatus.toUpperCase() == 'PAYE';
+    final isOnline =
+        consultationType == 'EN_LIGNE' || consultationType == 'EN LIGNE';
 
     final formattedDate = date.isNotEmpty
         ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(date).toLocal())
@@ -107,7 +117,7 @@ class _PatientBookingListState extends State<PatientBookingList> {
       case 'CONFIRMED':
         stateColor = Colors.green;
         break;
-      case 'CANCELED':
+      case 'REJECTED':
         stateColor = Colors.red;
         break;
       case 'PENDING':
@@ -127,32 +137,134 @@ class _PatientBookingListState extends State<PatientBookingList> {
             const SizedBox(height: 4),
             Text("Date: $formattedDate"),
             const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: stateColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                state,
-                style: const TextStyle(color: Colors.white),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: stateColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    state,
+                    style: const TextStyle(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isOnline) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isPaid
+                          ? Colors.green.withOpacity(0.2)
+                          : Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isPaid ? "Payé" : "En attente",
+                      style: TextStyle(
+                        color: isPaid ? Colors.green : Colors.orange,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+        trailing: isOnline
+            ? SizedBox(
+                height: 36,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isPaid ? Colors.green.withOpacity(0.1) : lightPurple,
+                    foregroundColor: isPaid ? Colors.green : Colors.black87,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    elevation: isPaid ? 0 : 2,
+                  ),
+                  icon: Icon(
+                    isPaid ? Icons.check_circle : Icons.payment,
+                    size: 18,
+                  ),
+                  label: Text(
+                    isPaid ? "Payé" : "Payer",
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  onPressed: isPaid
+                      ? null
+                      : () async {
+                          await showDialog(
+                            context: context,
+                            builder: (context) => PaymentDialog(
+                              reservation: booking,
+                              onPaymentSuccess: () {
+                                _loadReservations();
+                              },
+                            ),
+                          );
+                        },
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildBookingsList(List<dynamic> bookings, {required bool isOnline}) {
+    if (bookings.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadReservations,
+        child: ListView(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isOnline ? Icons.computer : Icons.local_hospital,
+                    size: 70,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Aucune réservation ${isOnline ? 'en ligne' : 'en cabinet'} trouvée",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Vous n'avez pas encore de rendez-vous ${isOnline ? 'en ligne' : 'en cabinet'} programmé.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        trailing: (consultationType == 'EN_LIGNE' ||
-                    consultationType == 'EN LIGNE') &&
-                paymentStatus.toUpperCase() != 'PAYE'
-            ? ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                ),
-                onPressed: () {
-                  // TODO: Implement payment flow
-                },
-                child: const Text("Payer"),
-              )
-            : null,
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadReservations,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: bookings.length,
+        itemBuilder: (context, index) => _buildReservationItem(bookings[index]),
       ),
     );
   }
@@ -162,7 +274,35 @@ class _PatientBookingListState extends State<PatientBookingList> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Mes Réservations"),
-        backgroundColor: const Color(0xFFCA88CD),
+        backgroundColor: mainPurple,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.computer, size: 20),
+                  SizedBox(width: 8),
+                  Text('En Ligne'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.local_hospital, size: 20),
+                  SizedBox(width: 8),
+                  Text('Cabinet'),
+                ],
+              ),
+            ),
+          ],
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -172,70 +312,14 @@ class _PatientBookingListState extends State<PatientBookingList> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadReservations,
-              child: ListView(
-                padding: const EdgeInsets.all(8),
-                children: [
-                  if (_onlineBookings.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        "Réservations en ligne",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                    ..._onlineBookings.map(_buildReservationItem).toList(),
-                  ],
-                  if (_cabinetBookings.isNotEmpty) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        "Réservations en cabinet",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                    ..._cabinetBookings.map(_buildReservationItem).toList(),
-                  ],
-                  if (_onlineBookings.isEmpty && _cabinetBookings.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 70,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "Aucune réservation trouvée",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Vous n'avez pas encore de rendez-vous programmé. Consultez la liste des médecins pour prendre rendez-vous.",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                // Online Reservations Tab
+                _buildBookingsList(_onlineBookings, isOnline: true),
+                // Cabinet Reservations Tab
+                _buildBookingsList(_cabinetBookings, isOnline: false),
+              ],
             ),
     );
   }
