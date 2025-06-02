@@ -154,24 +154,26 @@ class _PatientBookingListState extends State<PatientBookingList>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isOnline) ...[
+                if (isOnline &&
+                    state.toUpperCase() == 'CONFIRMED' &&
+                    isPaid) ...[
                   const SizedBox(width: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isPaid
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.orange.withOpacity(0.2),
+                      color: Colors.green.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      isPaid ? "Payé" : "En attente",
-                      style: TextStyle(
-                        color: isPaid ? Colors.green : Colors.orange,
-                        fontSize: 12,
-                      ),
-                    ),
+                    child: isPaid
+                        ? Text(
+                            "Payé",
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                            ),
+                          )
+                        : null,
                   ),
                 ],
               ],

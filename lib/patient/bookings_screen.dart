@@ -135,6 +135,61 @@ class _BookingsScreenState extends State<BookingsScreen> {
     );
   }
 
+  Widget _buildStatusBadge(String status, String paymentStatus) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: _getStatusColor(status),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            status,
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ),
+        if (status.toUpperCase() == 'CONFIRMED') ...[
+          SizedBox(width: 8),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: paymentStatus.toUpperCase() == 'PAYE'
+                  ? Colors.green.withOpacity(0.2)
+                  : Colors.orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  paymentStatus.toUpperCase() == 'PAYE'
+                      ? Icons.check_circle
+                      : Icons.pending,
+                  size: 16,
+                  color: paymentStatus.toUpperCase() == 'PAYE'
+                      ? Colors.green
+                      : Colors.orange,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  paymentStatus.toUpperCase() == 'PAYE' ? 'Payé' : 'En attente',
+                  style: TextStyle(
+                    color: paymentStatus.toUpperCase() == 'PAYE'
+                        ? Colors.green
+                        : Colors.orange,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,34 +250,11 @@ class _BookingsScreenState extends State<BookingsScreen> {
                                     children: [
                                       Text(formattedDate),
                                       SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: _getStatusColor(status),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              status,
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 12),
-                                            ),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Type: $consultationType',
-                                            style: TextStyle(fontSize: 12),
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Paiement: $paymentStatus',
-                                            style: TextStyle(fontSize: 12),
-                                          ),
-                                        ],
+                                      _buildStatusBadge(status, paymentStatus),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Type: $consultationType',
+                                        style: TextStyle(fontSize: 12),
                                       ),
                                     ],
                                   ),
