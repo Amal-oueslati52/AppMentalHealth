@@ -122,7 +122,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final amount = widget.reservation['attributes']['amount'] ?? 50.0;
+    final amount = widget.reservation['attributes']['amount'] ?? 30.0;
 
     return Dialog(
       child: Container(
@@ -134,47 +134,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_currentPaymentStatus != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _currentPaymentStatus == 'PAYE'
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _currentPaymentStatus == 'PAYE'
-                              ? Icons.check_circle
-                              : Icons.pending,
-                          color: _currentPaymentStatus == 'PAYE'
-                              ? Colors.green
-                              : Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _currentPaymentStatus == 'PAYE'
-                              ? 'Paiement confirmé'
-                              : 'Paiement en attente',
-                          style: TextStyle(
-                            color: _currentPaymentStatus == 'PAYE'
-                                ? Colors.green
-                                : Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 Text(
                   'Paiement de la consultation',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Montant à payer: ${NumberFormat.currency(locale: 'fr_FR', symbol: '€').format(amount)}',
+                  'Montant à payer: ${NumberFormat.currency(locale: 'fr_FR', symbol: 'Dt').format(amount)}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
