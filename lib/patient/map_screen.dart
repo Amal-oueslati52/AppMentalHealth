@@ -320,6 +320,7 @@ class _MapScreenState extends State<MapScreen> {
     showDialog(
       context: context,
       builder: (context) => BookingDialog(cabinet: cabinet),
+      
     );
   }
 

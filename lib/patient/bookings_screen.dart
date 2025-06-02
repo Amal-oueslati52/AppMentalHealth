@@ -23,14 +23,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   Future<void> _loadBookings({int page = 1}) async {
-    if (mounted) {
-      setState(() => _isLoading = true);
-    }
+    if (mounted) setState(() => _isLoading = true);
 
     try {
-      if (UserProvider.user == null) {
-        throw Exception('User not logged in');
-      }
+      if (UserProvider.user == null) throw Exception('User not logged in');
 
       final result = await _bookingService.fetchUserBookings(
         userID: UserProvider.user!.id.toString(),
@@ -80,12 +76,11 @@ class _BookingsScreenState extends State<BookingsScreen> {
   Future<void> _cancelBooking(String bookingId) async {
     try {
       final success = await _bookingService.cancelReservation(bookingId);
-
       if (success) {
         _loadBookings(page: _currentPage);
         if (mounted) {
           Flushbar(
-            message: 'Reservation cancelled successfully',
+            message: 'Réservation annulée avec succès',
             duration: Duration(seconds: 3),
             margin: EdgeInsets.all(8),
             borderRadius: BorderRadius.circular(8),
@@ -94,12 +89,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
           ).show(context);
         }
       } else {
-        throw Exception('Failed to cancel reservation');
+        throw Exception('Échec de l\'annulation');
       }
     } catch (e) {
       if (mounted) {
         Flushbar(
-          message: 'Error cancelling reservation: $e',
+          message: 'Erreur: $e',
           duration: Duration(seconds: 3),
           margin: EdgeInsets.all(8),
           borderRadius: BorderRadius.circular(8),
@@ -123,9 +118,9 @@ class _BookingsScreenState extends State<BookingsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFCA88CD),
             ),
-            child: Text('Previous'),
+            child: Text('Précédent'),
           ),
-          Text('Page $_currentPage of $_totalPages'),
+          Text('Page $_currentPage sur $_totalPages'),
           ElevatedButton(
             onPressed: _currentPage < _totalPages
                 ? () => _loadBookings(page: _currentPage + 1)
@@ -133,7 +128,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFCA88CD),
             ),
-            child: Text('Next'),
+            child: Text('Suivant'),
           ),
         ],
       ),
@@ -144,7 +139,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mes Rendez-vous'),
+        title: Text('Mes Réservations'),
         backgroundColor: Color(0xFFCA88CD),
       ),
       body: _isLoading
@@ -154,11 +149,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
               child: _bookings.isEmpty
                   ? Center(
                       child: Text(
-                        'Aucun rendez-vous trouvé',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                        ),
+                        'Aucune réservation trouvée',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                     )
                   : Column(
@@ -173,7 +165,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                               try {
                                 date = DateTime.parse(attributes['date'] ?? '')
                                     .toLocal();
-                              } catch (e) {
+                              } catch (_) {
                                 date = DateTime.now();
                               }
 
@@ -183,12 +175,14 @@ class _BookingsScreenState extends State<BookingsScreen> {
                                       ?['attributes'] ??
                                   {};
                               final status = attributes['state'] ?? 'PENDING';
+                              final consultationType =
+                                  attributes['Consultation_type'] ?? 'N/A';
+                              final paymentStatus =
+                                  attributes['payment_status'] ?? 'N/A';
 
                               return Card(
                                 margin: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
+                                    horizontal: 8, vertical: 4),
                                 child: ListTile(
                                   title: Text(
                                     cabinet['title'] ?? 'Cabinet inconnu',
@@ -201,35 +195,43 @@ class _BookingsScreenState extends State<BookingsScreen> {
                                     children: [
                                       Text(formattedDate),
                                       SizedBox(height: 4),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _getStatusColor(status),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          status,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusColor(status),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              status,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12),
+                                            ),
                                           ),
-                                        ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Type: $consultationType',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Paiement: $paymentStatus',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                   trailing: status == 'PENDING'
                                       ? IconButton(
-                                          icon: Icon(
-                                            Icons.cancel,
-                                            color: Colors.red,
-                                          ),
+                                          icon: Icon(Icons.cancel,
+                                              color: Colors.red),
                                           onPressed: () => _cancelBooking(
-                                            booking['id'].toString(),
-                                          ),
+                                              booking['id'].toString()),
                                         )
                                       : null,
                                 ),

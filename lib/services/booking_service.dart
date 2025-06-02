@@ -19,7 +19,7 @@ class BookingService {
     try {
       final token = await _authService.getAuthToken();
       if (token == null) {
-        print('⚠️ No auth token found');
+        print('⚠ No auth token found');
         throw Exception('Authentication required');
       }
 
@@ -39,7 +39,6 @@ class BookingService {
       final headers = await _getHeaders();
       print('🔍 Fetching cabinet details and available times');
 
-      // Get cabinet details with its documentId
       final url = Uri.parse('$baseUrl/cabinets').replace(
         queryParameters: {'filters[id][\$eq]': cabinetId, 'populate': '*'},
       );
@@ -69,7 +68,6 @@ class BookingService {
 
       print('📝 Found cabinet documentId: $documentId');
 
-      // Now fetch available times using documentId
       final timesUrl = Uri.parse('$baseUrl/available-datetimes/$documentId');
       print('🔗 Fetching times URL: $timesUrl');
 
@@ -105,11 +103,13 @@ class BookingService {
     }
   }
 
-  // Créer une réservation avec la bonne structure pour Strapi v4
+  // Créer une réservation avec tous les champs nécessaires
   Future<bool> createReservation({
     required String userID,
     required int cabinetId,
     required DateTime dateTime,
+    required String consultationType,
+    required String paymentStatus,
   }) async {
     try {
       final headers = await _getHeaders();
@@ -121,7 +121,9 @@ class BookingService {
           'date': dateTime.toUtc().toIso8601String(),
           'cabinet': cabinetId,
           'users_permissions_user': userID,
-          'state': 'PENDING'
+          'state': 'PENDING',
+          'Consultation_type': consultationType.toUpperCase(),
+          'payment_status': paymentStatus.toUpperCase(),
         }
       });
 
