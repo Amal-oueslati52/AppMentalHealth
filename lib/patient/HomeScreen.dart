@@ -7,6 +7,7 @@ import '../screens/chat.dart';
 import '../patient/assessment_screen.dart';
 import '../services/messagerieService.dart';
 import 'assessment_history_screen.dart';
+import '../patient/patient_bookings.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -69,6 +70,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PatientBookingList()),
+              );
+            },
+          ),
+          IconButton(
             icon: const ImageIcon(AssetImage('assets/icones/image 28.png')),
             onPressed: () {
               // Action pour le bouton de droite
@@ -115,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// 🟣 HomeContent reste inchangé mais déjà bien relié à PatientBookingList depuis le bouton d'AppBar.
 // Contenu de l'écran d'accueil
 class HomeContent extends StatelessWidget {
   const HomeContent({Key? key}) : super(key: key);

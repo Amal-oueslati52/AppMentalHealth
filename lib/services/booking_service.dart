@@ -19,8 +19,7 @@ class BookingService {
     try {
       final token = await _authService.getAuthToken();
       if (token == null) {
-        print('⚠ No auth token found');
-        throw Exception('Authentication required');
+        throw Exception('No authentication token available');
       }
 
       return {
@@ -118,12 +117,12 @@ class BookingService {
 
       final body = json.encode({
         'data': {
-          'date': dateTime.toUtc().toIso8601String(),
-          'cabinet': cabinetId,
           'users_permissions_user': userID,
-          'state': 'PENDING',
-          'Consultation_type': consultationType.toUpperCase(),
+          'cabinet': cabinetId,
+          'date': dateTime.toIso8601String(),
+          'Consultation_type': consultationType,
           'payment_status': paymentStatus.toUpperCase(),
+          'state': 'PENDING'
         }
       });
 
@@ -172,20 +171,34 @@ class BookingService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        return {
-          "data": jsonResponse['data'] ?? [],
-          "meta": jsonResponse['meta'] ?? {},
-        };
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        print('📥 Bookings response data structure: ${responseData.keys}');
+
+        if (responseData['data'] != null) {
+          final List<dynamic> bookings = responseData['data'];
+          print('📊 Number of bookings: ${bookings.length}');
+
+          if (bookings.isNotEmpty) {
+            print('🔍 Raw booking data example: ${bookings[0]}');
+            // Transform the data to include attributes
+            final transformedData = bookings
+                .map((booking) => {'id': booking['id'], 'attributes': booking})
+                .toList();
+
+            return {'data': transformedData, 'meta': responseData['meta']};
+          }
+        }
+        return responseData;
       }
 
+      print('❌ Failed to fetch bookings: ${response.body}');
       throw Exception('Error fetching bookings: ${response.body}');
     } catch (e) {
       print('❌ Error fetching bookings: $e');
       return {
-        "data": [],
-        "meta": {
-          "pagination": {"page": 1, "pageCount": 1}
+        'data': [],
+        'meta': {
+          'pagination': {'page': 1, 'pageCount': 1, 'total': 0}
         }
       };
     }
@@ -208,10 +221,11 @@ class BookingService {
       if (response.statusCode == 200) {
         return true;
       } else {
-        throw Exception('Error canceling reservation: ${response.body}');
+        print('❌ Failed to cancel reservation: ${response.body}');
+        return false;
       }
     } catch (e) {
-      logger.e('Error canceling reservation: $e');
+      print('❌ Error canceling reservation: $e');
       return false;
     }
   }
