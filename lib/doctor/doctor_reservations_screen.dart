@@ -325,7 +325,7 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen>
             ),
             PopupMenuItem<String>(
               value: 'REJECTED',
-              child: Text('Rejeter'),
+              child: Text('Annuler'),
             ),
           ],
         ),
@@ -370,7 +370,7 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen>
                 children: [
                   Icon(Icons.local_hospital, size: 20),
                   SizedBox(width: 8),
-                  Text('Cabinet'),
+                  Text('Au Cabinet'),
                 ],
               ),
             ),
