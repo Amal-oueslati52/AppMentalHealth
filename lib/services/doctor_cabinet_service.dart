@@ -161,14 +161,15 @@ class DoctorCabinetService {
                 'state': item['state'] ?? 'PENDING',
                 'Consultation_type': item['Consultation_type'],
                 'users_permissions_user': {
-                  'username': item['attributes']?['users_permissions_user']
-                          ?['data']?['attributes']?['username'] ??
-                      item['attributes']?['users_permissions_user']?['data']
-                          ?['attributes']?['email'] ??
+                  'username': item['users_permissions_user']?['username'] ??
+                      item['users_permissions_user']?['email'] ??
                       'Inconnu',
-                  'email': item['attributes']?['users_permissions_user']
-                          ?['data']?['attributes']?['email'] ??
-                      '',
+                  'email': item['users_permissions_user']?['email'] ?? '',
+                  'user_id': item['users_permissions_user']?['id'] ?? '',
+                  'first_name':
+                      item['users_permissions_user']?['first_name'] ?? '',
+                  'last_name':
+                      item['users_permissions_user']?['last_name'] ?? ''
                 }
               })
           .toList();
