@@ -150,20 +150,25 @@ class DoctorCabinetService {
       if (response.statusCode != 200) {
         throw Exception('Failed to fetch reservations');
       }
-
       final List<dynamic> reservationsData =
           json.decode(response.body)['data'] ?? [];
+      print('📋 Raw reservation data: ${json.encode(reservationsData)}');
       return reservationsData
           .map((item) => {
                 'id': item['id'],
-                'documentId': item['documentId'] ?? '',
+                'documentId': item['documentId'] ?? item['id'].toString(),
                 'date': item['date'],
                 'state': item['state'] ?? 'PENDING',
+                'Consultation_type': item['Consultation_type'],
                 'users_permissions_user': {
-                  'username': item['users_permissions_user']?['username'] ??
-                      item['users_permissions_user']?['email'] ??
+                  'username': item['attributes']?['users_permissions_user']
+                          ?['data']?['attributes']?['username'] ??
+                      item['attributes']?['users_permissions_user']?['data']
+                          ?['attributes']?['email'] ??
                       'Inconnu',
-                  'email': item['users_permissions_user']?['email'] ?? '',
+                  'email': item['attributes']?['users_permissions_user']
+                          ?['data']?['attributes']?['email'] ??
+                      '',
                 }
               })
           .toList();
@@ -179,6 +184,9 @@ class DoctorCabinetService {
       final token = await _authService.getAuthToken();
       if (token == null) throw Exception('No authentication token found');
 
+      print('🔄 Sending update request:');
+      print('- documentId: $documentId');
+      print('- newStatus: $newStatus');
       final response = await http.put(
         Uri.parse('$baseUrl/reservations/$documentId'),
         headers: {

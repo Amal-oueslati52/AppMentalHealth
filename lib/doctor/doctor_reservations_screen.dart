@@ -14,35 +14,67 @@ class DoctorReservationsScreen extends StatefulWidget {
       _DoctorReservationsScreenState();
 }
 
-class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
+class _DoctorReservationsScreenState extends State<DoctorReservationsScreen>
+    with SingleTickerProviderStateMixin {
   static const Map<String, String> statusColors = {
     'CONFIRMED': '#4CAF50',
     'REJECTED': '#F44336',
     'PENDING': '#FFA726',
   };
 
+  late TabController _tabController;
+  List<Map<String, dynamic>> _onlineReservations = [];
+  List<Map<String, dynamic>> _cabinetReservations = [];
   final DoctorCabinetService _cabinetService = DoctorCabinetService();
-  List<Map<String, dynamic>> _reservations = [];
   bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadReservations();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadReservations() async {
     setState(() => _isLoading = true);
     try {
       print('🔍 Loading reservations for cabinet ID: ${widget.cabinet.id}');
-
       final reservations = await _cabinetService
           .getCabinetReservations(widget.cabinet.id.toString());
 
       print('📋 Found ${reservations.length} real reservations');
+      print('📋 Toutes les réservations: ${reservations.length}');
+      reservations.forEach((r) {
+        print('- Type de consultation: ${r['Consultation_type']}');
+      });
+      final online = reservations.where((r) {
+        final consultationType = r['Consultation_type']?.toString() ?? '';
+        print('🔍 Consultation type (en ligne check): $consultationType');
+        return consultationType == 'EN_LIGNE';
+      }).toList();
+
+      final cabinet = reservations.where((r) {
+        final consultationType = r['Consultation_type']?.toString() ?? '';
+        print('🔍 Consultation type (cabinet check): $consultationType');
+        return consultationType == 'EN CABINET';
+      }).toList();
+
+      print('📊 Répartition des réservations:');
+      print('- Total: ${reservations.length}');
+      print('- En ligne: ${online.length}');
+      print('- En cabinet: ${cabinet.length}');
+
+      print('📋 Réservations en ligne: ${online.length}');
+      print('📋 Réservations en cabinet: ${cabinet.length}');
 
       setState(() {
-        _reservations = reservations;
+        _onlineReservations = online;
+        _cabinetReservations = cabinet;
         _isLoading = false;
       });
     } catch (e, stackTrace) {
@@ -63,21 +95,24 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
     try {
       setState(() => _isLoading = true);
 
-      final reservation = _reservations.firstWhere(
+      final reservation =
+          [..._onlineReservations, ..._cabinetReservations].firstWhere(
         (r) => r['id'].toString() == reservationId,
         orElse: () => throw Exception('Reservation not found'),
-      );
-
-      final documentId = reservation['documentId'];
-      print(
-          '📝 Updating reservation - ID: $reservationId, DocumentId: $documentId, Status: $newStatus');
-
-      if (documentId == null || documentId.isEmpty) {
-        throw Exception('DocumentId not found for reservation $reservationId');
+      ); // Récupérer le documentId de la réservation
+      final reservationDocId = reservation['documentId'];
+      if (reservationDocId == null || reservationDocId.toString().isEmpty) {
+        throw Exception(
+            'DocumentId invalide pour la réservation $reservationId');
       }
 
-      final success =
-          await _cabinetService.updateReservationStatus(documentId, newStatus);
+      print('📝 Mise à jour de la réservation:');
+      print('- ID: $reservationId');
+      print('- DocumentId: $reservationDocId');
+      print('- Nouveau statut: $newStatus');
+
+      final success = await _cabinetService.updateReservationStatus(
+          reservationDocId.toString(), newStatus);
 
       if (!mounted) return;
 
@@ -116,35 +151,43 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
     if (dateStr == null || dateStr.isEmpty) {
       return DateTime.now();
     }
-    return DateTime.tryParse(dateStr)?.toLocal() ?? DateTime.now();
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      print(
+          '📅 Parsed date: $dateStr -> ${DateFormat('dd/MM/yyyy HH:mm').format(date)}');
+      return date;
+    } catch (e) {
+      print('❌ Erreur de parsing de la date: $dateStr');
+      return DateTime.now();
+    }
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({required bool isOnline}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.calendar_today,
+          Icon(
+            isOnline ? Icons.computer : Icons.local_hospital,
             size: 80,
             color: Colors.grey,
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Pas de réservations',
-            style: TextStyle(
+          Text(
+            'Pas de réservations ${isOnline ? 'en ligne' : 'en cabinet'}',
+            style: const TextStyle(
               fontSize: 20,
               color: Color(0xFF757575),
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              'Ce cabinet n\'a pas encore reçu de réservations',
+              'Ce cabinet n\'a pas encore reçu de réservations ${isOnline ? 'en ligne' : 'en cabinet'}',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF9E9E9E),
               ),
@@ -168,12 +211,19 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
     final date = _parseDate(reservation['date']);
     final status = reservation['state'] ?? 'PENDING';
     final user = reservation['users_permissions_user'] ?? {};
+    final consultationType = reservation['Consultation_type']?.toString() ?? '';
+    print('🏥 Card consultation type: $consultationType');
+    final isOnline = consultationType == 'EN_LIGNE';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isOnline ? const Color(0xFF8B94CD) : const Color(0xFFCA88CD),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFFCA88CD).withOpacity(0.1),
@@ -200,24 +250,63 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
                 color: Colors.black87,
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(int.parse(
-                        _getStatusColor(status).replaceAll('#', '0xFF'))),
-                    Color(int.parse(
-                            _getStatusColor(status).replaceAll('#', '0xFF')))
-                        .withOpacity(0.8),
-                  ],
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(int.parse(
+                            _getStatusColor(status).replaceAll('#', '0xFF'))),
+                        Color(int.parse(_getStatusColor(status)
+                                .replaceAll('#', '0xFF')))
+                            .withOpacity(0.8),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    status,
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status,
-                style: const TextStyle(color: Colors.white),
-              ),
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOnline
+                        ? const Color(0xFF8B94CD).withOpacity(0.2)
+                        : const Color(0xFFCA88CD).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isOnline ? Icons.computer : Icons.local_hospital,
+                        size: 16,
+                        color: isOnline
+                            ? const Color(0xFF8B94CD)
+                            : const Color(0xFFCA88CD),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isOnline ? 'En Ligne' : 'Cabinet',
+                        style: TextStyle(
+                          color: isOnline
+                              ? const Color(0xFF8B94CD)
+                              : const Color(0xFFCA88CD),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -262,6 +351,34 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
             ),
           ),
         ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.computer, size: 20),
+                  SizedBox(width: 8),
+                  Text('En Ligne'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.local_hospital, size: 20),
+                  SizedBox(width: 8),
+                  Text('Cabinet'),
+                ],
+              ),
+            ),
+          ],
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -273,15 +390,34 @@ class _DoctorReservationsScreenState extends State<DoctorReservationsScreen> {
         ),
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _loadReservations,
-                child: _reservations.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        itemCount: _reservations.length,
-                        itemBuilder: (context, index) =>
-                            _buildReservationCard(_reservations[index]),
-                      ),
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  // Online Reservations Tab
+                  RefreshIndicator(
+                    onRefresh: _loadReservations,
+                    child: _onlineReservations.isEmpty
+                        ? _buildEmptyState(isOnline: true)
+                        : ListView.builder(
+                            itemCount: _onlineReservations.length,
+                            itemBuilder: (context, index) =>
+                                _buildReservationCard(
+                                    _onlineReservations[index]),
+                          ),
+                  ),
+                  // Cabinet Reservations Tab
+                  RefreshIndicator(
+                    onRefresh: _loadReservations,
+                    child: _cabinetReservations.isEmpty
+                        ? _buildEmptyState(isOnline: false)
+                        : ListView.builder(
+                            itemCount: _cabinetReservations.length,
+                            itemBuilder: (context, index) =>
+                                _buildReservationCard(
+                                    _cabinetReservations[index]),
+                          ),
+                  ),
+                ],
               ),
       ),
     );
