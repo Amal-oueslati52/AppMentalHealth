@@ -1,11 +1,11 @@
 {
-    "name": "app",
-    "short_name": "app",
+    "name": "RAHTI",
+    "short_name": "RAHTI",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#CA88CD",
+    "theme_color": "#8B94CD",
+    "description": "Votre compagnon de bien-être mental",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
