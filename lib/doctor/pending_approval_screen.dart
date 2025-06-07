@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:app/services/strapi_auth_service.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
 
 class PendingApprovalScreen extends StatelessWidget {
   const PendingApprovalScreen({Key? key}) : super(key: key);

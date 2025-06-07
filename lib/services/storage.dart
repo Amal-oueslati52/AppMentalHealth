@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:app/providers/user_provider.dart';
+import 'package:rahti/providers/user_provider.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';

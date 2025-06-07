@@ -1,6 +1,6 @@
 {
-    "name": "RAHTI",
-    "short_name": "RAHTI",
+    "name": "rahti",
+    "short_name": "rahti",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#CA88CD",

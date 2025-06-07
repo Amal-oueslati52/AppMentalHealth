@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:app/patient/login.dart';
-import 'package:app/patient/HomeScreen.dart';
-import 'package:app/doctor/doctorHome.dart';
-import 'package:app/doctor/pending_approval_screen.dart';
-import 'package:app/doctor/complete_profile_doctor.dart';
-import 'package:app/patient/completePatientProfile.dart';
-import 'package:app/services/strapi_auth_service.dart';
+import 'package:rahti/patient/login.dart';
+import 'package:rahti/patient/HomeScreen.dart';
+import 'package:rahti/doctor/doctorHome.dart';
+import 'package:rahti/doctor/pending_approval_screen.dart';
+import 'package:rahti/doctor/complete_profile_doctor.dart';
+import 'package:rahti/patient/completePatientProfile.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -127,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen> {
               const SizedBox(height: 24),
               // App name with modern style
               const Text(
-                'RAHTI',
+                'rahti',
                 style: TextStyle(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,

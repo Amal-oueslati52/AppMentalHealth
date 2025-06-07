@@ -1,2 +1,2 @@
-C:/Users/Amal/RahtiApp/android/app/.cxx/Debug/64165c11/x86/CMakeFiles/edit_cache.dir
-C:/Users/Amal/RahtiApp/android/app/.cxx/Debug/64165c11/x86/CMakeFiles/rebuild_cache.dir
+C:/Users/Amal/rahtiApp/android/app/.cxx/Debug/64165c11/x86/CMakeFiles/edit_cache.dir
+C:/Users/Amal/rahtiApp/android/app/.cxx/Debug/64165c11/x86/CMakeFiles/rebuild_cache.dir

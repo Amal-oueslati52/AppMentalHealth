@@ -1,10 +1,10 @@
-import 'package:app/services/strapi_auth_service.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:app/toast/toast.dart';
+import 'package:rahti/toast/toast.dart';
 import 'package:logger/logger.dart';
-import 'package:app/patient/completePatientProfile.dart';
-import 'package:app/doctor/complete_profile_doctor.dart';
-import 'package:app/models/user_role.dart';
+import 'package:rahti/patient/completePatientProfile.dart';
+import 'package:rahti/doctor/complete_profile_doctor.dart';
+import 'package:rahti/models/user_role.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -139,7 +139,6 @@ class _SignUpState extends State<SignUp> {
       _setLoading(false);
     }
   }
-
 
   Widget _buildTextField({
     required TextEditingController controller,

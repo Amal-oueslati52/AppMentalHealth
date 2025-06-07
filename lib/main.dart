@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:app/patient/splash_screen.dart';
+import 'package:rahti/patient/splash_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 Future<void> main() async {
@@ -36,7 +36,7 @@ Future<void> main() async {
   } catch (e) {
     print("❌ Error initializing Firebase: $e");
   }
-  
+
   await dotenv.load(fileName: ".env");
   print("Environment variables loaded");
   runApp(const MyApp());

@@ -1,18 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:app/models/user.dart';
-import 'package:app/patient/login.dart';
-import 'package:app/patient/HomeScreen.dart';
-import 'package:app/doctor/doctorHome.dart';
-import 'package:app/doctor/pending_approval_screen.dart';
-import 'package:app/services/http_service.dart';
-import 'package:app/toast/toast.dart';
-import 'package:app/user_provider.dart';
+import 'package:rahti/models/user.dart';
+import 'package:rahti/patient/login.dart';
+import 'package:rahti/patient/HomeScreen.dart';
+import 'package:rahti/doctor/doctorHome.dart';
+import 'package:rahti/doctor/pending_approval_screen.dart';
+import 'package:rahti/services/http_service.dart';
+import 'package:rahti/toast/toast.dart';
+import 'package:rahti/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
 import 'storage.dart';
-import 'package:app/patient/completePatientProfile.dart';
+import 'package:rahti/patient/completePatientProfile.dart';
 import 'messagerieService.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -43,7 +43,7 @@ class AuthService {
       // Clear Firebase messaging cache and reset FCM token
       final messagingService = MessagerieService();
       await messagingService.clearMessagingCache();
-      
+
       // Force generate a new FCM token by deleting the old one first
       await FirebaseMessaging.instance.deleteToken();
       final fcmToken = await FirebaseMessaging.instance.getToken();
@@ -87,7 +87,8 @@ class AuthService {
             if (tokenUpdateResponse.statusCode == 200) {
               _logger.i('✅ FCM token updated on server');
             } else {
-              _logger.w('⚠️ Failed to update FCM token: ${tokenUpdateResponse.body}');
+              _logger.w(
+                  '⚠️ Failed to update FCM token: ${tokenUpdateResponse.body}');
             }
           } catch (e) {
             _logger.e('❌ Error updating FCM token: $e');

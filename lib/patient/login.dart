@@ -1,7 +1,7 @@
-import 'package:app/services/strapi_auth_service.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
 import 'package:flutter/material.dart';
-import 'package:app/patient/sign_up.dart';
-import 'package:app/toast/toast.dart';
+import 'package:rahti/patient/sign_up.dart';
+import 'package:rahti/toast/toast.dart';
 import 'package:logger/logger.dart';
 
 class Login extends StatefulWidget {

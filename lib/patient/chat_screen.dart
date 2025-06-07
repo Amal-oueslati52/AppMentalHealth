@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:app/services/chat_service.dart'; // Importation du service de chat
-import 'package:app/models/message.dart'; // Importation du modèle de message
+import 'package:rahti/services/chat_service.dart'; // Importation du service de chat
+import 'package:rahti/models/message.dart'; // Importation du modèle de message
 
 // Définition de l'écran du chatbot
 class ChatScreen extends StatefulWidget {

@@ -9,10 +9,10 @@
 -DCMAKE_ANDROID_NDK=C:\Users\Amal\AppData\Local\Android\sdk\ndk\25.1.8937393
 -DCMAKE_TOOLCHAIN_FILE=C:\Users\Amal\AppData\Local\Android\sdk\ndk\25.1.8937393\build\cmake\android.toolchain.cmake
 -DCMAKE_MAKE_PROGRAM=C:\Users\Amal\AppData\Local\Android\sdk\cmake\3.22.1\bin\ninja.exe
--DCMAKE_LIBRARY_OUTPUT_DIRECTORY=C:\FlutterApps\appRahti\build\app\intermediates\cxx\Debug\5g3p5c6e\obj\x86_64
--DCMAKE_RUNTIME_OUTPUT_DIRECTORY=C:\FlutterApps\appRahti\build\app\intermediates\cxx\Debug\5g3p5c6e\obj\x86_64
+-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=C:\FlutterApps\apprahti\build\app\intermediates\cxx\Debug\5g3p5c6e\obj\x86_64
+-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=C:\FlutterApps\apprahti\build\app\intermediates\cxx\Debug\5g3p5c6e\obj\x86_64
 -DCMAKE_BUILD_TYPE=Debug
--BC:\FlutterApps\appRahti\android\app\.cxx\Debug\5g3p5c6e\x86_64
+-BC:\FlutterApps\apprahti\android\app\.cxx\Debug\5g3p5c6e\x86_64
 -GNinja
 -Wno-dev
 --no-warn-unused-cli

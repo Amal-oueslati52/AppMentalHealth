@@ -1,7 +1,7 @@
-import 'package:app/toast/toast.dart';
+import 'package:rahti/toast/toast.dart';
 import 'package:flutter/material.dart';
-import 'package:app/services/strapi_auth_service.dart';
-import 'package:app/patient/HomeScreen.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
+import 'package:rahti/patient/HomeScreen.dart';
 
 class CompletePatientProfile extends StatefulWidget {
   final Map<String, dynamic> userData;

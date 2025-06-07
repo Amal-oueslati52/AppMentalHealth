@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:app/services/assessment_storage_service.dart';
-import 'package:app/user_provider.dart';
+import 'package:rahti/services/assessment_storage_service.dart';
+import 'package:rahti/user_provider.dart';
 import 'package:intl/intl.dart';
 
 class AssessmentHistoryScreen extends StatefulWidget {

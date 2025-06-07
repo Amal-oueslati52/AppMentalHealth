@@ -1,6 +1,6 @@
-import 'package:app/screens/buble.dart';
-import 'package:app/services/messagerieService.dart';
-import 'package:app/providers/user_provider.dart';
+import 'package:rahti/screens/buble.dart';
+import 'package:rahti/services/messagerieService.dart';
+import 'package:rahti/providers/user_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,12 +36,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _initializeChat() async {
     try {
       await _checkAuthentication();
-      
+
       // Verify Firebase is initialized
       if (!Firebase.apps.isNotEmpty) {
         await Firebase.initializeApp();
       }
-      
+
       setState(() {
         _isInitialized = true;
       });

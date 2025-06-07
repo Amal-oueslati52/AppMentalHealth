@@ -1,4 +1,4 @@
-import 'package:app/models/message.dart';
+import 'package:rahti/models/message.dart';
 
 class AssessmentSession {
   final String id;

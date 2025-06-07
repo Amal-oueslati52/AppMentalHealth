@@ -1,4 +1,4 @@
-import 'package:app/providers/user_provider.dart';
+import 'package:rahti/providers/user_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'strapi_auth_service.dart';

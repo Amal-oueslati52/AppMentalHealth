@@ -32,7 +32,7 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/FlutterApps/RahtiApp/android/app/.cxx/Debug/371v5r1w/armeabi-v7a",
+		"build" : "C:/FlutterApps/rahtiApp/android/app/.cxx/Debug/371v5r1w/armeabi-v7a",
 		"source" : "C:/flutter/packages/flutter_tools/gradle/src/main/groovy"
 	},
 	"version" : 

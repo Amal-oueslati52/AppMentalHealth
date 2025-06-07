@@ -151,7 +151,7 @@
 				}
 			],
 			"type" : "INTERNAL",
-			"value" : "c:/FlutterApps/appRahti/android/app/.cxx/Debug/5g3p5c6e/x86_64"
+			"value" : "c:/FlutterApps/apprahti/android/app/.cxx/Debug/5g3p5c6e/x86_64"
 		},
 		{
 			"name" : "CMAKE_CACHE_MAJOR_VERSION",
@@ -751,7 +751,7 @@
 				}
 			],
 			"type" : "UNINITIALIZED",
-			"value" : "C:\\FlutterApps\\appRahti\\build\\app\\intermediates\\cxx\\Debug\\5g3p5c6e\\obj\\x86_64"
+			"value" : "C:\\FlutterApps\\apprahti\\build\\app\\intermediates\\cxx\\Debug\\5g3p5c6e\\obj\\x86_64"
 		},
 		{
 			"name" : "CMAKE_LINKER",
@@ -1023,7 +1023,7 @@
 				}
 			],
 			"type" : "UNINITIALIZED",
-			"value" : "C:\\FlutterApps\\appRahti\\build\\app\\intermediates\\cxx\\Debug\\5g3p5c6e\\obj\\x86_64"
+			"value" : "C:\\FlutterApps\\apprahti\\build\\app\\intermediates\\cxx\\Debug\\5g3p5c6e\\obj\\x86_64"
 		},
 		{
 			"name" : "CMAKE_SHARED_LINKER_FLAGS",
@@ -1331,7 +1331,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "C:/FlutterApps/appRahti/android/app/.cxx/Debug/5g3p5c6e/x86_64"
+			"value" : "C:/FlutterApps/apprahti/android/app/.cxx/Debug/5g3p5c6e/x86_64"
 		},
 		{
 			"name" : "Project_IS_TOP_LEVEL",

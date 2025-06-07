@@ -1,4 +1,4 @@
-import 'package:app/models/user.dart';
+import 'package:rahti/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/message.dart';

@@ -1,7 +1,7 @@
-import 'package:app/toast/toast.dart';
+import 'package:rahti/toast/toast.dart';
 import 'package:flutter/material.dart';
-import 'package:app/services/strapi_auth_service.dart';
-import 'package:app/doctor/pending_approval_screen.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
+import 'package:rahti/doctor/pending_approval_screen.dart';
 
 class CompleteDoctorProfile extends StatefulWidget {
   final Map<String, dynamic> userData;

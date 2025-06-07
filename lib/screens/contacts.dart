@@ -1,6 +1,6 @@
-import 'package:app/providers/user_provider.dart';
-import 'package:app/screens/chat.dart';
-import 'package:app/services/messagerieService.dart';
+import 'package:rahti/providers/user_provider.dart';
+import 'package:rahti/screens/chat.dart';
+import 'package:rahti/services/messagerieService.dart';
 import 'package:flutter/material.dart';
 
 class ChatListScreen extends StatefulWidget {

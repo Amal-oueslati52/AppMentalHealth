@@ -2,7 +2,7 @@ import 'dart:io';
 import '../models/assessment_session.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:app/services/strapi_auth_service.dart';
+import 'package:rahti/services/strapi_auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AssessmentStorageService {

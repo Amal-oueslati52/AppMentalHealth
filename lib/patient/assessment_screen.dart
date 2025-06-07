@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:app/models/message.dart';
-import 'package:app/services/chat_service.dart';
-import 'package:app/user_provider.dart';
+import 'package:rahti/models/message.dart';
+import 'package:rahti/services/chat_service.dart';
+import 'package:rahti/user_provider.dart';
 import 'assessment_history_screen.dart';
 
 class AssessmentScreen extends StatefulWidget {
