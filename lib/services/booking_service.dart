@@ -237,13 +237,14 @@ class BookingService {
 
       // Use direct access with documentId
       final url = Uri.parse('$baseUrl/reservations/$documentId');
-
       print('🔍 Checking payment status URL: $url');
       final response = await http.get(url, headers: headers);
       final responseData = json.decode(response.body);
 
+      print('📝 Payment status response: ${response.body}');
+
       if (response.statusCode == 200 && responseData['data'] != null) {
-        final status = responseData['data']['attributes']['payment_status'];
+        final status = responseData['data']['payment_status'];
         print('✅ Payment status retrieved: $status');
         return status;
       }
