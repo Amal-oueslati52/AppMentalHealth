@@ -203,23 +203,23 @@ class _LoginState extends State<Login> {
               children: [
                 const SizedBox(height: 50),
                 Container(
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: [
-                        Colors.white.withOpacity(0.2),
-                        Colors.white.withOpacity(0.3)
+                        Colors.white.withOpacity(0.5),
+                        Colors.white.withOpacity(0.2)
                       ],
                     ),
                   ),
-                  child: const CircleAvatar(
-                    radius: 50,
+                  child: CircleAvatar(
+                    radius: 60,
                     backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.psychology,
-                      size: 50,
-                      color: Color(0xFF8B94CD),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 80,
+                      height: 80,
                     ),
                   ),
                 ),

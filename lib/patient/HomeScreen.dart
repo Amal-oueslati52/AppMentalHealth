@@ -7,7 +7,7 @@ import '../screens/chat.dart';
 import '../patient/assessment_screen.dart';
 import '../services/messagerieService.dart';
 import 'assessment_history_screen.dart';
-import '../patient/patient_bookings.dart'; 
+import '../patient/patient_bookings.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -56,12 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const ImageIcon(AssetImage('assets/icones/image 25.png')),
-          onPressed: () {
-            // Action pour le bouton de gauche
-          },
-        ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -76,12 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => PatientBookingList()),
               );
-            },
-          ),
-          IconButton(
-            icon: const ImageIcon(AssetImage('assets/icones/image 28.png')),
-            onPressed: () {
-              // Action pour le bouton de droite
             },
           ),
         ],
@@ -141,13 +129,45 @@ class HomeContent extends StatelessWidget {
         ),
       ),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildContactDoctorCard(context),
+              const Text(
+                'Bienvenue',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildServiceCard(
+                context,
+                'Contacter un Médecin',
+                'Consultez nos professionnels de santé qualifiés',
+                Icons.medical_services,
+                () => _showDoctorsList(context, MessagerieService()),
+              ),
               const SizedBox(height: 16),
-              _buildJournalCard(context),
+              _buildServiceCard(
+                context,
+                'Journal de Suivi',
+                'Suivez votre bien-être au quotidien',
+                Icons.psychology,
+                () => _navigateToAssessment(context),
+                showHistory: true,
+                onHistoryTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AssessmentHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -155,100 +175,111 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildContactDoctorCard(BuildContext context) {
-    final MessagerieService _messagerieService = MessagerieService();
-
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCardHeader(),
-            const SizedBox(height: 16),
-            _buildCardDescription(),
-            const SizedBox(height: 20),
-            _buildContactButton(context, _messagerieService),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardHeader() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0E6FF),
-            borderRadius: BorderRadius.circular(12),
+  Widget _buildServiceCard(
+    BuildContext context,
+    String title,
+    String description,
+    IconData icon,
+    VoidCallback onTap, {
+    bool showHistory = false,
+    VoidCallback? onHistoryTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: const Icon(
-            Icons.medical_services,
-            color: Color(0xFF8B94CD),
-            size: 28,
-          ),
-        ),
-        const SizedBox(width: 16),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Contacter un',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4A4A4A),
-              ),
-            ),
-            Text(
-              'Médecin',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4A4A4A),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCardDescription() {
-    return const Text(
-      'Consultez nos professionnels de santé qualifiés pour un suivi personnalisé',
-      style: TextStyle(
-        fontSize: 16,
-        color: Colors.grey,
+        ],
       ),
-    );
-  }
-
-  Widget _buildContactButton(
-      BuildContext context, MessagerieService messagerieService) {
-    return InkWell(
-      onTap: () => _showDoctorsList(context, messagerieService),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: const Color(0xFF8B94CD),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: const Center(
-          child: Text(
-            'Commencer une discussion →',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            children: [
+              InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0E6FF),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          icon,
+                          color: const Color(0xFF8B94CD),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4A4A4A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              description,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF8B94CD),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (showHistory && onHistoryTap != null) ...[
+                const Divider(height: 1),
+                InkWell(
+                  onTap: onHistoryTap,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.history, color: Color(0xFF8B94CD)),
+                        SizedBox(width: 8),
+                        Text(
+                          'Voir l\'historique',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF8B94CD),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -277,87 +308,6 @@ class HomeContent extends StatelessWidget {
             scrollController: controller,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildJournalCard(BuildContext context) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            onTap: () => _navigateToAssessment(context),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  _buildJournalIcon(),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Text(
-                      'Suivie de la journal',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4A4A4A),
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, color: Color(0xFF8B94CD)),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AssessmentHistoryScreen(),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.history, color: Color(0xFF8B94CD)),
-                  SizedBox(width: 8),
-                  Text(
-                    'Voir l\'historique',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF8B94CD),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJournalIcon() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0E6FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Icon(
-        Icons.psychology,
-        color: Color(0xFF8B94CD),
-        size: 28,
       ),
     );
   }
