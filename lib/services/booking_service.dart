@@ -230,19 +230,49 @@ class BookingService {
     }
   }
 
-  // Mettre à jour le statut de paiement
-  Future<bool> updatePaymentStatus(String reservationId, String status) async {
+  // Vérifier le statut du paiement d'une réservation
+  Future<String?> checkPaymentStatus(String documentId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http
-          .put(
-            Uri.parse('$baseUrl/reservations/$reservationId'),
-            headers: headers,
-            body: json.encode({
-              'data': {'payment_status': status}
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+
+      // Use direct access with documentId
+      final url = Uri.parse('$baseUrl/reservations/$documentId');
+
+      print('🔍 Checking payment status URL: $url');
+      final response = await http.get(url, headers: headers);
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 && responseData['data'] != null) {
+        final status = responseData['data']['attributes']['payment_status'];
+        print('✅ Payment status retrieved: $status');
+        return status;
+      }
+
+      print('❌ Failed to check payment status: ${response.body}');
+      return null;
+    } catch (e) {
+      print('❌ Error checking payment status: $e');
+      return null;
+    }
+  }
+
+  // Mettre à jour le statut de paiement
+  Future<bool> updatePaymentStatus(String documentId, String status) async {
+    try {
+      final headers = await _getHeaders();
+      final url = Uri.parse('$baseUrl/reservations/$documentId');
+
+      print('🔍 Updating payment status:');
+      print('- documentId: $documentId');
+      print('- status: $status');
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: json.encode({
+          'data': {'payment_status': status.toUpperCase()}
+        }),
+      );
 
       if (response.statusCode == 200) {
         print('✅ Payment status updated successfully');
@@ -254,52 +284,6 @@ class BookingService {
     } catch (e) {
       print('❌ Error updating payment status: $e');
       return false;
-    }
-  } // Vérifier le statut du paiement d'une réservation
-
-  Future<String?> checkPaymentStatus(String reservationId) async {
-    try {
-      final headers = await _getHeaders();
-      final url = Uri.parse('$baseUrl/reservations').replace(
-        queryParameters: {
-          'populate': '*',
-          'filters[id][\$eq]': reservationId,
-          'pagination[page]': '1',
-          'pagination[pageSize]': '1',
-        },
-      );
-
-      print('🔍 Checking payment status URL: $url');
-      final response = await http
-          .get(
-            url,
-            headers: headers,
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        print('📝 Payment status response: ${response.body}');
-
-        if (jsonResponse['data'] != null &&
-            jsonResponse['data'] is List &&
-            jsonResponse['data'].isNotEmpty) {
-          final reservation = jsonResponse['data'][0];
-          if (reservation != null) {
-            final status = reservation['payment_status'] ?? 'NO_PAYE';
-            print('✅ Payment status retrieved: $status');
-            return status;
-          }
-        } else {
-          print('❌ No reservation data found in response');
-          return 'NO_PAYE'; // Valeur par défaut si pas de données
-        }
-      }
-
-      print('❌ Failed to check payment status: ${response.body}');
-      return null;
-    } catch (e) {
-      print('❌ Error checking payment status: $e');
-      return null;
     }
   }
 }

@@ -68,10 +68,19 @@ class _PaymentDialogState extends State<PaymentDialog> {
       // Simuler un délai de traitement
       await Future.delayed(const Duration(seconds: 2));
 
+      // Get the documentId from the reservation data
+      final documentId =
+          widget.reservation['attributes']?['documentId']?.toString();
+      if (documentId == null) throw Exception('Invalid reservation ID');
+
+      print('📝 Processing payment for reservation: $documentId');
+
       final success = await _bookingService.updatePaymentStatus(
-        widget.reservation['id'].toString(),
+        documentId,
         'PAYE',
       );
+
+      if (!mounted) return;
 
       if (success) {
         widget.onPaymentSuccess();
@@ -86,6 +95,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
         throw Exception('Échec du paiement');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur: $e'),
@@ -93,16 +103,26 @@ class _PaymentDialogState extends State<PaymentDialog> {
         ),
       );
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
   Future<void> _checkPaymentStatus() async {
     try {
-      final status = await _bookingService.checkPaymentStatus(
-        widget.reservation['id'].toString(),
-      );
-      if (mounted && status != _currentPaymentStatus) {
+      // Get the documentId from the reservation data
+      final documentId =
+          widget.reservation['attributes']?['documentId']?.toString();
+      if (documentId == null) return;
+
+      print('🔍 Checking payment status for reservation: $documentId');
+
+      final status = await _bookingService.checkPaymentStatus(documentId);
+
+      if (!mounted) return;
+
+      if (status != _currentPaymentStatus) {
         setState(() => _currentPaymentStatus = status);
         if (status == 'PAYE') {
           widget.onPaymentSuccess();
@@ -116,13 +136,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
         }
       }
     } catch (e) {
-      print('Erreur lors de la vérification du statut: $e');
+      print('❌ Erreur lors de la vérification du statut: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final amount = widget.reservation['attributes']['amount'] ?? 30.0;
+    final amount = widget.reservation['amount'] ?? 30.0;
 
     return Dialog(
       child: Container(
@@ -144,105 +164,112 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 24),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom sur la carte',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value?.isEmpty == true ? 'Champ requis' : null,
-                ),
-                const SizedBox(height: 16),
+                // Numéro de carte
                 TextFormField(
                   controller: _cardNumberController,
                   decoration: const InputDecoration(
                     labelText: 'Numéro de carte',
-                    border: OutlineInputBorder(),
+                    hintText: '1234 5678 9012 3456',
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(16),
                   ],
-                  validator: (value) =>
-                      (value?.length ?? 0) < 16 ? 'Numéro invalide' : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer un numéro de carte';
+                    }
+                    return null;
+                  },
                   onChanged: (value) {
-                    final formatted = _formatCardNumber(value);
-                    if (formatted != value) {
+                    final formattedValue = _formatCardNumber(value);
+                    if (formattedValue != value) {
                       _cardNumberController.value = TextEditingValue(
-                        text: formatted,
-                        selection:
-                            TextSelection.collapsed(offset: formatted.length),
+                        text: formattedValue,
+                        selection: TextSelection.collapsed(
+                            offset: formattedValue.length),
                       );
                     }
                   },
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _expiryController,
-                        decoration: const InputDecoration(
-                          labelText: 'MM/AA',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(4),
-                        ],
-                        validator: (value) =>
-                            (value?.length ?? 0) < 4 ? 'Date invalide' : null,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _cvvController,
-                        decoration: const InputDecoration(
-                          labelText: 'CVV',
-                          border: OutlineInputBorder(),
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(3),
-                        ],
-                        validator: (value) =>
-                            (value?.length ?? 0) < 3 ? 'CVV invalide' : null,
-                      ),
-                    ),
+                // Date d'expiration
+                TextFormField(
+                  controller: _expiryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Date d\'expiration',
+                    hintText: 'MM/YY',
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
                   ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer une date';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                // CVV
+                TextFormField(
+                  controller: _cvvController,
+                  decoration: const InputDecoration(
+                    labelText: 'CVV',
+                    hintText: '123',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(3),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer un CVV';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Nom sur la carte
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom sur la carte',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Veuillez entrer le nom sur la carte';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed:
-                          _isProcessing ? null : () => Navigator.pop(context),
-                      child: const Text('Annuler'),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isProcessing ? null : _processPayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCA88CD),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _isProcessing ? null : _processPayment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE5C1E5),
-                        foregroundColor: Colors.black87,
-                      ),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('Payer'),
-                    ),
-                  ],
+                    child: _isProcessing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Payer',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
                 ),
               ],
             ),
