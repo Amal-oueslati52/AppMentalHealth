@@ -85,14 +85,30 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
   }
 
   Future<void> _deleteAccount() async {
+    final TextEditingController passwordController = TextEditingController();
+
     final bool confirm = await showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Supprimer le compte'),
-            content: const Text(
-              'Êtes-vous sûr de vouloir supprimer votre compte ? '
-              'Cette action supprimera également votre cabinet et toutes vos réservations. '
-              'Cette action est irréversible.',
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Êtes-vous sûr de vouloir supprimer votre compte ? '
+                  'Cette action supprimera également votre cabinet et toutes vos réservations. '
+                  'Cette action est irréversible.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: "Mot de passe",
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+              ],
             ),
             actions: [
               TextButton(
@@ -108,10 +124,21 @@ class _DoctorProfileViewState extends State<DoctorProfileView> {
           ),
         ) ??
         false;
-
     if (confirm && mounted) {
       setState(() => _isLoading = true);
       try {
+        // Vérifier le mot de passe avant de supprimer le compte
+        if (passwordController.text.isEmpty) {
+          throw Exception('Veuillez entrer votre mot de passe');
+        }
+
+        // Valider le mot de passe avec le serveur avant de supprimer le compte
+        final passwordValid =
+            await _authService.validatePassword(passwordController.text);
+        if (!passwordValid) {
+          throw Exception('Mot de passe incorrect');
+        }
+
         final success = await _authService.deleteAccount();
         if (success && mounted) {
           await _authService.logout(context);

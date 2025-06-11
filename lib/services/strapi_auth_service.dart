@@ -829,6 +829,29 @@ class AuthService {
     }
   }
 
+  Future<bool> validatePassword(String password) async {
+    try {
+      _logger.i('Validating password');
+
+      final user = UserProvider.user;
+      if (user == null) throw Exception('No user found');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/local'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'identifier': user.email,
+          'password': password,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      _logger.e('Error validating password: $e');
+      return false;
+    }
+  }
+
   void dispose() {
     _logger.d('Disposing AuthService resources');
   }

@@ -134,12 +134,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteAccount() async {
+    final TextEditingController passwordController = TextEditingController();
+
     final bool confirm = await showDialog(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text("Supprimer le compte"),
-            content: const Text(
-                "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                    "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: "Mot de passe",
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
+              ],
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -155,10 +171,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ) ??
         false;
-
     if (confirm && mounted) {
       setState(() => _isLoading = true);
       try {
+        // Vérifier le mot de passe avant de supprimer le compte
+        if (passwordController.text.isEmpty) {
+          throw Exception('Veuillez entrer votre mot de passe');
+        }
+
+        // Valider le mot de passe avec le serveur avant de supprimer le compte
+        final passwordValid =
+            await _authService.validatePassword(passwordController.text);
+        if (!passwordValid) {
+          throw Exception('Mot de passe incorrect');
+        }
+
         final success = await _authService.deleteAccount();
         if (success && mounted) {
           await _authService.logout(context);
@@ -309,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _deleteAccount,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: const Color.fromARGB(255, 248, 86, 75),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 30, vertical: 15),
                   ),
