@@ -1,31 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:circle_nav_bar/circle_nav_bar.dart';
-import 'ProfileScreen.dart';
+import 'profile_screen.dart';
 import 'chat_screen.dart';
 import 'map_screen.dart';
 import '../screens/chat.dart';
 import '../patient/assessment_screen.dart';
-import '../services/messagerieService.dart';
-import 'assessment_history_screen.dart';
 import '../patient/patient_bookings.dart';
+import 'assessment_history_screen.dart';
+import '../services/messagerie_service.dart';
+
+const double kBottomNavHeight = 60.0;
+const double kCircleNavWidth = 60.0;
+const double kLogoWidth = 30.0;
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tabIndex = 0;
-  late PageController _pageController;
+  late final PageController _pageController;
 
-  // Liste des écrans accessibles via la barre de navigation
-  final List<Widget> _screens = [
-    const HomeContent(), // Contenu de l'écran d'accueil
-    const ProfileScreen(), // Profil
-    MapScreen(), // Carte
-    const ChatScreen(), // Garder le chat
+  final List<({Widget screen, Icon icon, String label})> _navigationItems = [
+    (
+      screen: const HomeContent(),
+      icon: const Icon(Icons.home, color: Colors.deepPurple),
+      label: "Accueil",
+    ),
+    (
+      screen: const ProfileScreen(),
+      icon: const Icon(Icons.person, color: Colors.deepPurple),
+      label: "Profil",
+    ),
+    (
+      screen: MapScreen(),
+      icon: const Icon(Icons.map, color: Colors.deepPurple),
+      label: "Carte",
+    ),
+    (
+      screen: const ChatScreen(),
+      icon: const Icon(Icons.chat, color: Colors.deepPurple),
+      label: "Chatbot",
+    ),
   ];
 
   @override
@@ -40,8 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  // Changement d'onglet
   void _onTabTapped(int index) {
+    if (!mounted) return;
     setState(() {
       _tabIndex = index;
       _pageController.animateToPage(
@@ -59,44 +78,33 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Image.asset('assets/images/logo.png', width: 30),
+            Image.asset('assets/images/logo.png', width: kLogoWidth),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_month),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PatientBookingList()),
-              );
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PatientBookingList()),
+            ),
           ),
         ],
       ),
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
-          setState(() => _tabIndex = index);
+          if (mounted) setState(() => _tabIndex = index);
         },
-        children: _screens,
+        children: _navigationItems.map((item) => item.screen).toList(),
       ),
       bottomNavigationBar: CircleNavBar(
-        activeIcons: const [
-          Icon(Icons.home, color: Colors.deepPurple), // Accueil
-          Icon(Icons.person, color: Colors.deepPurple), // Profil
-          Icon(Icons.map, color: Colors.deepPurple), // Carte
-          Icon(Icons.chat, color: Colors.deepPurple), // Garder le chat
-        ],
-        inactiveIcons: const [
-          Text("Accueil"),
-          Text("Profil"),
-          Text("Carte"),
-          Text("Chatbot"), // Garder le chatbot
-        ],
+        activeIcons: _navigationItems.map((item) => item.icon).toList(),
+        inactiveIcons:
+            _navigationItems.map((item) => Text(item.label)).toList(),
         color: Colors.white,
-        height: 60,
-        circleWidth: 60,
+        height: kBottomNavHeight,
+        circleWidth: kCircleNavWidth,
         activeIndex: _tabIndex,
         onTap: _onTabTapped,
         padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
@@ -116,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
 // 🟣 HomeContent reste inchangé mais déjà bien relié à PatientBookingList depuis le bouton d'AppBar.
 // Contenu de l'écran d'accueil
 class HomeContent extends StatelessWidget {
-  const HomeContent({Key? key}) : super(key: key);
+  const HomeContent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +199,7 @@ class HomeContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withAlpha(25),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -326,12 +334,11 @@ class HomeContent extends StatelessWidget {
 class DoctorsList extends StatelessWidget {
   final MessagerieService messagerieService;
   final ScrollController scrollController;
-
   const DoctorsList({
-    Key? key,
+    super.key,
     required this.messagerieService,
     required this.scrollController,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +375,7 @@ class DoctorsList extends StatelessWidget {
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: const Color(0xFFF0E6FF),
-                      child: Icon(
+                      child: const Icon(
                         Icons.person,
                         color: Color(0xFF8B94CD),
                       ),

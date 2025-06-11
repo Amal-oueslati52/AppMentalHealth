@@ -66,7 +66,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Message message) {
-    // Même style que dans AssessmentScreen
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
@@ -77,20 +76,14 @@ class _ChatScreenState extends State<ChatScreen> {
           const SizedBox(width: 8),
           Flexible(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: message.isUser
-                      ? [const Color(0xFFCA88CD), const Color(0xFF8B94CD)]
-                      : [Colors.white, Colors.white],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: message.isUser ? const Color(0xFF8B94CD) : Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFCA88CD).withOpacity(0.1),
-                    blurRadius: 5,
+                    color: const Color(0xFFCA88CD).withAlpha(25),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -99,7 +92,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 message.content,
                 style: TextStyle(
                   color: message.isUser ? Colors.white : Colors.black87,
-                  fontSize: 16,
                 ),
               ),
             ),
@@ -139,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFCA88CD).withOpacity(0.1),
+            color: const Color(0xFFCA88CD).withAlpha(25),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

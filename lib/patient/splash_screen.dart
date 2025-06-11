@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:rahti/patient/login.dart';
-import 'package:rahti/patient/HomeScreen.dart';
-import 'package:rahti/doctor/doctorHome.dart';
+import 'package:rahti/patient/home_screen.dart';
+import 'package:rahti/doctor/doctor_home.dart';
 import 'package:rahti/doctor/pending_approval_screen.dart';
 import 'package:rahti/doctor/complete_profile_doctor.dart';
-import 'package:rahti/patient/completePatientProfile.dart';
+import 'package:rahti/patient/complete_patient_profile.dart';
 import 'package:rahti/services/strapi_auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -109,8 +109,8 @@ class _SplashScreenState extends State<SplashScreen> {
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withOpacity(0.5),
-                      Colors.white.withOpacity(0.2)
+                      Colors.white.withAlpha(128),
+                      Colors.white.withAlpha(51)
                     ],
                   ),
                 ),
@@ -148,7 +148,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 'Votre compagnon de bien-être mental',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withAlpha(204),
                   letterSpacing: 1,
                 ),
               ),
@@ -159,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 height: 40,
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.white.withOpacity(0.8),
+                    Colors.white.withAlpha(204),
                   ),
                   strokeWidth: 3,
                 ),

@@ -115,7 +115,7 @@ class DoctorHome extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFCA88CD).withOpacity(0.1),
+            color: const Color(0xFFCA88CD).withAlpha(25),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

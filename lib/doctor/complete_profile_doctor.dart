@@ -6,8 +6,7 @@ import 'package:rahti/doctor/pending_approval_screen.dart';
 class CompleteDoctorProfile extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const CompleteDoctorProfile({Key? key, required this.userData})
-      : super(key: key);
+  const CompleteDoctorProfile({super.key, required this.userData});
 
   @override
   _CompleteDoctorProfileState createState() => _CompleteDoctorProfileState();
@@ -18,9 +17,18 @@ class _CompleteDoctorProfileState extends State<CompleteDoctorProfile> {
   final _specialityController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _specialityController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleComplete() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isDisposed) return;
 
     setState(() => _isLoading = true);
     try {
@@ -35,15 +43,20 @@ class _CompleteDoctorProfileState extends State<CompleteDoctorProfile> {
         jwt: jwt,
       );
 
-      if (!mounted) return;
+      if (!mounted || _isDisposed) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const PendingApprovalScreen()),
       );
     } catch (e) {
-      showToast(message: e.toString().replaceAll('Exception: ', ''));
+      if (!_isDisposed && mounted) {
+        showToast(message: e.toString().replaceAll('Exception: ', ''));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (!_isDisposed && mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -92,7 +105,7 @@ class _CompleteDoctorProfileState extends State<CompleteDoctorProfile> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCA88CD).withOpacity(0.2),
+                        color: const Color(0xFFCA88CD).withAlpha(51),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -112,7 +125,7 @@ class _CompleteDoctorProfileState extends State<CompleteDoctorProfile> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCA88CD).withOpacity(0.1),
+                        color: const Color(0xFFCA88CD).withAlpha(25),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -150,7 +163,7 @@ class _CompleteDoctorProfileState extends State<CompleteDoctorProfile> {
                     borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFCA88CD).withOpacity(0.3),
+                        color: const Color(0xFFCA88CD).withAlpha(76),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),

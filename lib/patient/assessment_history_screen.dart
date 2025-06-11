@@ -15,6 +15,7 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
   final AssessmentStorageService _storageService = AssessmentStorageService();
   bool _isLoading = true;
   List<Map<String, dynamic>> _assessments = [];
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -22,23 +23,37 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
     _loadAssessments();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
   Future<void> _loadAssessments() async {
+    if (_isDisposed) return;
     setState(() => _isLoading = true);
+
     try {
       final userId = UserProvider.user?.id.toString();
-      if (userId != null) {
-        final assessments = await _storageService.getAssessmentHistory(userId);
-        setState(() => _assessments = assessments);
+      if (userId == null) {
+        throw Exception('User ID not found');
       }
+
+      final assessments = await _storageService.getAssessmentHistory(userId);
+      if (_isDisposed) return;
+
+      setState(() => _assessments = assessments);
     } catch (e) {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erreur lors du chargement de l\'historique: $e')),
+            content: Text('Erreur lors du chargement: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         setState(() => _isLoading = false);
       }
     }

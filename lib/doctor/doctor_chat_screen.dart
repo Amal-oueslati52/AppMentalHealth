@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/messagerieService.dart';
+import '../services/messagerie_service.dart';
 import '../screens/chat.dart';
 
 class DoctorChatScreen extends StatefulWidget {

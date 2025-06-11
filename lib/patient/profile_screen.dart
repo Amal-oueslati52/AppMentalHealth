@@ -147,7 +147,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color.fromARGB(135, 226, 155, 150)),
                 child: const Text("Supprimer"),
               ),
             ],
@@ -187,7 +188,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           labelText: label,
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.8),
+          fillColor: Colors.white.withAlpha(204),
           suffixIcon: _isEditing
               ? Icon(
                   isNumeric ? Icons.numbers : Icons.edit,
@@ -298,7 +299,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ElevatedButton(
                     onPressed: () => setState(() => _isEditing = true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color.fromARGB(166, 144, 192, 231),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 50, vertical: 15),
                     ),

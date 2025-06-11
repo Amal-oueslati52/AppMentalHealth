@@ -156,8 +156,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: paymentStatus.toUpperCase() == 'PAYE'
-                  ? Colors.green.withOpacity(0.2)
-                  : Colors.orange.withOpacity(0.2),
+                  ? Colors.green.withAlpha(51)
+                  : Colors.orange.withAlpha(51),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(

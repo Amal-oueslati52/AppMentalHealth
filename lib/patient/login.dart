@@ -97,7 +97,7 @@ class _LoginState extends State<Login> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withAlpha(51),
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -139,10 +139,7 @@ class _LoginState extends State<Login> {
       height: 50,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.2),
-            Colors.white.withOpacity(0.3)
-          ],
+          colors: [Colors.white.withAlpha(51), Colors.white.withAlpha(76)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),

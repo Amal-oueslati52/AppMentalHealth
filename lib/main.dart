@@ -1,55 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:rahti/patient/splash_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:rahti/patient/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
     // Initialize Firebase first
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyD6McMzcCR-PIHgHw-YN-ctpopOJjbCvLI",
-        appId: "1:709467509181:android:4adbf5132d733552b882d4",
-        messagingSenderId: "709467509181",
-        projectId: "app1-40a70",
-        storageBucket: "app1-40a70.firebasestorage.app",
-      ),
-    );
+    await Firebase.initializeApp();
 
     // Initialize notifications after Firebase
-    await _initializeNotifications();
+    await _initializeNotifications();    // Enable Firebase services after initialization only in debug mode
+    if (kDebugMode) {
+      await _initializeFirebaseServices();
+    }
 
-    // Then enable Firebase services
-    await FirebaseAuth.instance.signInAnonymously();
-    await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          AndroidProvider.debug, // Change to playIntegrity for production
-      appleProvider: AppleProvider.deviceCheck,
-    );
-
-    print("✅ Firebase initialized with notifications");
+    await dotenv.load(fileName: ".env");
+    if (kDebugMode) {
+      print("Environment variables loaded");
+    }
   } catch (e) {
-    print("❌ Error initializing Firebase: $e");
+    if (kDebugMode) {
+      print("❌ Error during initialization: $e");
+    }
   }
 
-  await dotenv.load(fileName: ".env");
-  print("Environment variables loaded");
   runApp(const MyApp());
 }
 
-Future<void> _initializeNotifications() async {
-  // Request permission
-  final messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission();
+Future<void> _initializeFirebaseServices() async {
+  try {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+      appleProvider: AppleProvider.deviceCheck,
+    );
+    if (kDebugMode) {
+      print("✅ Firebase services initialized");
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("❌ Error initializing Firebase services: $e");
+    }
+  }
+}
 
-  // Get FCM token
-  final token = await messaging.getToken();
-  print("📱 FCM Token: $token");
+Future<void> _initializeNotifications() async {
+  try {
+    final messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    final token = await messaging.getToken();
+    if (kDebugMode) {
+      print("📱 FCM Token: $token");
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("❌ Error initializing notifications: $e");
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -59,8 +74,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Mental Health App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: SplashScreen(),
     );

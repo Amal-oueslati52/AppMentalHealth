@@ -2,7 +2,7 @@ import 'package:rahti/services/strapi_auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:rahti/toast/toast.dart';
 import 'package:logger/logger.dart';
-import 'package:rahti/patient/completePatientProfile.dart';
+import 'package:rahti/patient/complete_patient_profile.dart';
 import 'package:rahti/doctor/complete_profile_doctor.dart';
 import 'package:rahti/models/user_role.dart';
 

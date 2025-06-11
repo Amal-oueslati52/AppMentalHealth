@@ -17,6 +17,7 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
   final List<Message> _messages = [];
   bool _isLoading = false;
   String _selectedLanguage = 'fr';
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -24,10 +25,19 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     _startAssessment();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _messageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _startAssessment() async {
+    if (_isDisposed) return;
     setState(() => _isLoading = true);
     try {
       final response = await _chatService.startAssessment(_selectedLanguage);
+      if (_isDisposed) return;
       setState(() {
         _messages.add(Message(
           content: response['message'],
@@ -36,11 +46,15 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
         ));
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+      if (!_isDisposed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (!_isDisposed) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -149,8 +163,8 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: message.isUser
-                            ? Colors.white.withOpacity(0.9)
-                            : Colors.white.withOpacity(0.7),
+                            ? Colors.white.withAlpha(230)
+                            : Colors.white.withAlpha(178),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       constraints: BoxConstraints(
@@ -220,11 +234,5 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
   }
 }

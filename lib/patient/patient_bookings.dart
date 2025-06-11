@@ -162,7 +162,7 @@ class _PatientBookingListState extends State<PatientBookingList>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.2),
+                      color: Colors.green.withAlpha(51),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: isPaid
@@ -186,7 +186,7 @@ class _PatientBookingListState extends State<PatientBookingList>
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isPaid
-                        ? Colors.green.withOpacity(0.1)
+                        ? Colors.green.withAlpha(25)
                         : state.toUpperCase() == 'CONFIRMED'
                             ? Colors.green
                             : lightPurple,
