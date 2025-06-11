@@ -143,10 +143,23 @@ class _DoctorCabinetsScreenState extends State<DoctorCabinetsScreen> {
                                 ),
                               ),
                               subtitle: Text(cabinet.description ?? ''),
-                              trailing: IconButton(
+                              trailing: ElevatedButton.icon(
                                 icon: Icon(
-                                  Icons.calendar_today,
-                                  color: Color(0xFFCA88CD),
+                                  Icons.list_alt,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                label: const Text(
+                                  'Réservations',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFFCA88CD),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
                                 ),
                                 onPressed: () =>
                                     _navigateToReservations(cabinet),

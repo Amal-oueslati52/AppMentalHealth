@@ -75,18 +75,6 @@ class DoctorHome extends StatelessWidget {
                 ),
               ),
               _buildMenuCard(
-                icon: Icons.calendar_today,
-                title: 'Réservations du Jour',
-                subtitle: 'Voir les rendez-vous à venir',
-                onTap: () {/* TODO */},
-              ),
-              _buildMenuCard(
-                icon: Icons.schedule,
-                title: 'Horaires de Travail',
-                subtitle: 'Gérer vos disponibilités',
-                onTap: () {/* TODO */},
-              ),
-              _buildMenuCard(
                 icon: Icons.person,
                 title: 'Mon Profil',
                 subtitle: 'Gérer mes informations',
