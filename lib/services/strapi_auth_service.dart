@@ -852,6 +852,32 @@ class AuthService {
     }
   }
 
+  Future<bool> forgotPassword(String email) async {
+    try {
+      _logger.i('Requesting password reset for: $email');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _logger.i('Password reset email sent successfully');
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(
+            error['error']?['message'] ?? 'Failed to send reset email');
+      }
+    } catch (e) {
+      _logger.e('Error requesting password reset: $e');
+      throw Exception('Failed to send reset email: $e');
+    }
+  }
+
   void dispose() {
     _logger.d('Disposing AuthService resources');
   }

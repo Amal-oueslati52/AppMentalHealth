@@ -76,6 +76,82 @@ class _LoginState extends State<Login> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final TextEditingController emailController = TextEditingController();
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Réinitialiser le mot de passe'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Entrez votre adresse e-mail pour recevoir un lien de réinitialisation',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (!_isValidEmail(emailController.text.trim())) {
+                        showToast(message: "Veuillez entrer un email valide");
+                        return;
+                      }
+
+                      setState(() => isLoading = true);
+                      try {
+                        await _authService
+                            .forgotPassword(emailController.text.trim());
+                        if (!mounted) return;
+                        Navigator.pop(context);
+                        showToast(
+                            message:
+                                "Email de réinitialisation envoyé avec succès");
+                      } catch (e) {
+                        showToast(
+                            message:
+                                e.toString().replaceAll('Exception: ', ''));
+                      } finally {
+                        if (mounted) {
+                          setState(() => isLoading = false);
+                        }
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Envoyer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -253,7 +329,18 @@ class _LoginState extends State<Login> {
                   label: 'Se connecter',
                   isLoading: _isLoading,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => _showForgotPasswordDialog(),
+                  child: const Text(
+                    'Mot de passe oublié ?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 TextButton(
                   onPressed: () => Navigator.push(
                     context,
