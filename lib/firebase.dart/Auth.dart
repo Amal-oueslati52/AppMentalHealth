@@ -5,11 +5,13 @@ class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   SharedPreferences? _prefs;
 
+  // Constructeur qui initialise les préférences partagées
   FirebaseAuthService() {
     _initPrefs();
   }
 
-  // Initialiser les préférences partagées
+  // Initialisation des préférences partagées pour stocker les tokens et données de session
+  // Cette méthode est appelée automatiquement lors de la création du service
   Future<void> _initPrefs() async {
     _prefs = await SharedPreferences.getInstance();
   }
@@ -53,13 +55,15 @@ class FirebaseAuthService {
   }
 
   // Inscription avec email et mot de passe
-  Future<User?> signUpWithEmailAndPassword(String email, String password) async {
+  Future<User?> signUpWithEmailAndPassword(
+      String email, String password) async {
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
-      print("Inscription réussie pour l'utilisateur : ${credential.user?.email}");
+      print(
+          "Inscription réussie pour l'utilisateur : ${credential.user?.email}");
       return credential.user;
     } catch (e) {
       print("Erreur d'inscription : ${e.toString()}");
@@ -68,7 +72,8 @@ class FirebaseAuthService {
   }
 
   // Connexion avec email et mot de passe
-  Future<User?> signInWithEmailAndPassword(String email, String password) async {
+  Future<User?> signInWithEmailAndPassword(
+      String email, String password) async {
     try {
       print("Tentative de connexion avec l'email : $email");
       UserCredential credential = await _auth.signInWithEmailAndPassword(
@@ -79,7 +84,8 @@ class FirebaseAuthService {
       if (credential.user != null) {
         // Vérifiez si l'email est vérifié
         if (!credential.user!.emailVerified) {
-          print("L'email n'est pas vérifié pour l'utilisateur : ${credential.user!.email}");
+          print(
+              "L'email n'est pas vérifié pour l'utilisateur : ${credential.user!.email}");
           await credential.user!.sendEmailVerification();
           print("Email de vérification envoyé.");
           return null; // Retournez null si l'email n'est pas vérifié
@@ -88,7 +94,8 @@ class FirebaseAuthService {
         // Récupérer et sauvegarder le token
         String token = (await credential.user!.getIdToken()) ?? '';
         await _saveToken(token);
-        print("Connexion réussie pour l'utilisateur : ${credential.user!.email}");
+        print(
+            "Connexion réussie pour l'utilisateur : ${credential.user!.email}");
       }
       return credential.user;
     } catch (e) {

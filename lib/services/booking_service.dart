@@ -6,15 +6,32 @@ import 'package:logger/logger.dart';
 import 'strapi_auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// Service de gestion des réservations de consultations médicales
+/// Ce service gère l'ensemble du cycle de vie des réservations :
+/// 1. Recherche de créneaux disponibles
+/// 2. Création de réservations
+/// 3. Gestion des paiements
+/// 4. Annulations et modifications
+/// 5. Historique des consultations
+///
+/// Architecture du système de réservation :
+/// - Communication avec l'API Strapi
+/// - Gestion des états de réservation (PENDING, CONFIRMED, CANCELED)
+/// - Suivi des paiements
+/// - Pagination des résultats
 class BookingService {
+  /// URL de base de l'API, adaptée selon la plateforme
   final String baseUrl = Platform.isAndroid
       ? dotenv.env['API_URL_ANDROID']!
       : dotenv.env['API_URL_IOS']!;
 
+  /// Logger pour le debugging et monitoring
   final Logger logger = Logger();
+
+  /// Service d'authentification pour les tokens
   final AuthService _authService = AuthService();
 
-  // Centralisation des en-têtes avec gestion améliorée du token
+  /// Gestion centralisée des en-têtes HTTP avec authentification
   Future<Map<String, String>> _getHeaders() async {
     try {
       final token = await _authService.getAuthToken();

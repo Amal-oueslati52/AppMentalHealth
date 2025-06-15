@@ -2,7 +2,21 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+/// Configuration Firebase pour l'application de santé mentale
+/// Cette classe gère les options de configuration Firebase pour différentes plateformes :
+/// - Android : Configuration native pour les appareils Android
+/// - iOS : Configuration pour les appareils Apple
+/// - Web : Configuration pour la version web de l'application
+///
+/// Fonctionnalités Firebase utilisées :
+/// - Authentication : Gestion des connexions et inscriptions
+/// - Cloud Firestore : Base de données pour les messages en temps réel
+/// - Cloud Messaging : Notifications push
+/// - Storage : Stockage des fichiers (images, documents)
+/// - App Check : Sécurité supplémentaire
 class DefaultFirebaseOptions {
+  /// Retourne la configuration appropriée selon la plateforme d'exécution
+  /// Cette méthode est appelée automatiquement lors de l'initialisation de Firebase
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;

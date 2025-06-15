@@ -17,25 +17,53 @@ import 'messagerie_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+/// Service gérant l'authentification et la gestion des utilisateurs
+/// Utilise le pattern Singleton pour assurer une seule instance dans l'application
 class AuthService {
+  // Implémentation du pattern Singleton pour garantir une instance unique
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
 
-  final Logger _logger = Logger();
-  final StorageService _storage = StorageService();
-  final HttpClient _httpClient = HttpClient();
+  // Services et dépendances nécessaires
+  final Logger _logger =
+      Logger(); // Service de logging pour le debug et monitoring
+  final StorageService _storage =
+      StorageService(); // Gestion du stockage local (tokens, préférences)
+  final HttpClient _httpClient =
+      HttpClient(); // Client HTTP personnalisé pour les requêtes API
 
   // Utiliser la bonne URL selon la plateforme
   static final String baseUrl = Platform.isAndroid
       ? dotenv.env['API_URL_ANDROID']!
       : dotenv.env['API_URL_IOS']!;
 
+  /// Fonction de connexion d'un utilisateur
+  /// @param email: adresse email de l'utilisateur
+  /// @param password: mot de passe de l'utilisateur
+  /// @returns Map contenant le token JWT et les données utilisateur
+  /// Processus:
+  /// 1. Nettoie les anciennes données
+  /// 2. Réinitialise les tokens Firebase
+  /// 3. Authentifie auprès de Strapi
+  /// 4. Sauvegarde les nouvelles données
+  /// 5. Met à jour le token FCM  /// Authentification d'un utilisateur avec email et mot de passe
+  ///
+  /// Processus complet :
+  /// 1. Nettoyage des données existantes (session, cache)
+  /// 2. Réinitialisation des tokens Firebase
+  /// 3. Authentification auprès de Strapi
+  /// 4. Récupération et sauvegarde du nouveau token
+  /// 5. Mise à jour des données utilisateur
+  ///
+  /// @param email Email de l'utilisateur
+  /// @param password Mot de passe
+  /// @returns Map contenant le token JWT et les données utilisateur
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      _logger.i('Attempting login for: $email');
+      _logger.i('Tentative de connexion pour: $email');
 
-      // 1. Clear all existing data
+      // 1. Nettoyage complet des données existantes
       await _storage.clearAll();
       await _storage.clearAuthData();
       UserProvider.user = null;
@@ -108,6 +136,13 @@ class AuthService {
     }
   }
 
+  /// Gère la navigation après la connexion selon le rôle de l'utilisateur
+  /// Pour les médecins:
+  /// - Vérifie si le compte est approuvé
+  /// - Redirige vers l'écran d'attente ou l'accueil docteur
+  /// Pour les patients:
+  /// - Vérifie si le profil est complet
+  /// - Redirige vers la complétion du profil ou l'accueil patient
   Future<void> navigateBasedOnRole(BuildContext context) async {
     try {
       final user = await getCurrentUser();
@@ -190,6 +225,15 @@ class AuthService {
     }
   }
 
+  /// Inscription d'un nouvel utilisateur
+  /// @param email: email de l'utilisateur
+  /// @param password: mot de passe
+  /// @param name: nom complet
+  /// @param genre: genre de l'utilisateur
+  /// @param objectif: objectif de l'utilisateur
+  /// @param role: rôle (DOCTOR ou PATIENT)
+  /// @param age: âge (optionnel)
+  /// Crée le compte utilisateur et le profil associé selon le rôle
   Future<Map<String, dynamic>> register({
     required String email,
     required String password,
@@ -852,6 +896,10 @@ class AuthService {
     }
   }
 
+  /// Demande de réinitialisation de mot de passe
+  /// @param email: adresse email de l'utilisateur
+  /// @returns true si l'email a été envoyé avec succès
+  /// Envoie un email avec un lien de réinitialisation via Strapi
   Future<bool> forgotPassword(String email) async {
     try {
       _logger.i('Requesting password reset for: $email');

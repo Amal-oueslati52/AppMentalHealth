@@ -30,16 +30,19 @@ class StorageService {
     await prefs.setString(_userIdKey, userId);
   }
 
+  // Récupération de l'identifiant utilisateur stocké localement
   Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userIdKey);
   }
 
+  // Sauvegarde du rôle de l'utilisateur (PATIENT ou DOCTEUR)
   Future<void> saveUserRole(String role) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userRoleKey, role.toUpperCase());
   }
 
+  // Récupération du rôle actuel de l'utilisateur
   Future<String?> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userRoleKey)?.toUpperCase();

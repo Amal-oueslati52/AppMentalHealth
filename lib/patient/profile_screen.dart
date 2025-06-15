@@ -10,12 +10,14 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
+/// État de l'écran de profil utilisateur
+/// Gère l'affichage et la modification des informations du profil
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthService _authService = AuthService();
-  bool _isEditing = false;
-  bool _isLoading = false;
-  bool _isInitialLoading = true;
-  User? _currentUser;
+  final AuthService _authService = AuthService(); // Service d'authentification
+  bool _isEditing = false; // Mode édition activé/désactivé
+  bool _isLoading = false; // Indicateur de chargement pour les opérations
+  bool _isInitialLoading = true; // Chargement initial des données
+  User? _currentUser; // Données de l'utilisateur courant
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _genreController = TextEditingController();

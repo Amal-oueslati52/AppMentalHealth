@@ -4,6 +4,8 @@ import 'package:rahti/patient/sign_up.dart';
 import 'package:rahti/toast/toast.dart';
 import 'package:logger/logger.dart';
 
+/// Écran de connexion principal de l'application
+/// Gère à la fois la connexion des patients et des médecins
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -12,12 +14,19 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final AuthService _authService = AuthService();
-  final Logger _logger = Logger();
+  // Services et contrôleurs
+  final AuthService _authService = AuthService(); // Service d'authentification
+  final Logger _logger = Logger(); // Pour le logging
+
+  // Contrôleurs pour les champs de texte
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  // Focus nodes pour la navigation au clavier
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
+
+  // État de chargement
   bool _isLoading = false;
 
   @override
@@ -42,6 +51,9 @@ class _LoginState extends State<Login> {
     return emailRegex.hasMatch(email);
   }
 
+  /// Fonction de connexion
+  /// Vérifie les champs, authentifie l'utilisateur et gère la navigation
+  /// Affiche des messages d'erreur si nécessaire
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
 
@@ -76,6 +88,11 @@ class _LoginState extends State<Login> {
     }
   }
 
+  /// Affiche une boîte de dialogue pour la réinitialisation du mot de passe
+  /// - Demande l'email de l'utilisateur
+  /// - Vérifie que l'email est valide
+  /// - Envoie la demande de réinitialisation
+  /// - Affiche un message de confirmation ou d'erreur
   Future<void> _showForgotPasswordDialog() async {
     final TextEditingController emailController = TextEditingController();
     bool isLoading = false;

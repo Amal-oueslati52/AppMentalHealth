@@ -4,10 +4,18 @@ import 'package:flutter/material.dart';
 import 'strapi_auth_service.dart';
 import 'http_service.dart';
 
+/// Service de messagerie gérant les conversations entre utilisateurs
+/// Utilise Firebase Firestore pour le stockage en temps réel des messages
+/// et Strapi pour la gestion des utilisateurs et des blocages
 class MessagerieService extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final HttpClient _httpClient = HttpClient();
+  final FirebaseFirestore _firestore = FirebaseFirestore
+      .instance; // Instance Firestore pour le stockage des messages
+  final HttpClient _httpClient =
+      HttpClient(); // Client HTTP pour les requêtes API
 
+  /// Vérifie que l'utilisateur est authentifié avant d'effectuer des opérations
+  /// Tente une initialisation si nécessaire
+  /// @returns true si l'authentification est valide
   Future<bool> _ensureAuthenticated() async {
     if (!UserProvider.isAuthenticated) {
       return await UserProvider.initialize();
@@ -15,10 +23,14 @@ class MessagerieService extends ChangeNotifier {
     return true;
   }
 
-  // Send message
+  /// Envoie un message à un utilisateur spécifique
+  /// Le message est stocké dans une "salle de chat" unique pour les deux utilisateurs
+  /// @param receiverId ID de l'utilisateur destinataire
+  /// @param message Contenu du message à envoyer
+  /// @throws Exception si l'authentification échoue ou si l'envoi est impossible
   Future<void> sendMessage(String receiverId, String message) async {
     if (!await _ensureAuthenticated()) {
-      throw Exception('Authentication required');
+      throw Exception('Authentification requise');
     }
 
     try {

@@ -8,24 +8,63 @@ import 'conversation_storage_service.dart';
 import '../user_provider.dart';
 import 'dart:io';
 
-// Service de chat qui gère l'envoi des messages à l'API et la réception des réponses
+/// Service de chat intelligent pour l'assistance en santé mentale
+/// Ce service gère trois aspects principaux :
+/// 1. Communication avec l'API Groq LLM (Large Language Model)
+/// 2. Auto-évaluation psychologique structurée
+/// 3. Stockage et suivi des conversations
+///
+/// Architecture du service :
+/// - Utilise Groq API pour le traitement du langage naturel
+/// - Intègre un système d'évaluation psychologique en 5 étapes
+/// - Supporte le multilinguisme (Français, Anglais, Arabe)
+/// - Stockage persistant des conversations et évaluations
+///
+/// Sécurité et confidentialité :
+/// - Authentification sécurisée avec l'API Groq
+/// - Stockage crypté des données sensibles
+/// - Gestion des tokens et des sessions
 class ChatService {
-  // URL de base de l'API Groq pour les requêtes de complétion de chat
+  /// URL de l'API Groq pour l'interaction avec le modèle LLM
+  /// Utilise le modèle llama-3.3-70b-versatile pour une compréhension optimale du contexte médical
   final String _baseUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
-  // Instance de Dio pour effectuer les requêtes HTTP
+  /// Client HTTP Dio pour les requêtes API
+  /// Avantages :
+  /// - Gestion automatique des timeouts
+  /// - Intercepteurs pour logging
+  /// - Retry automatique en cas d'échec
   final _dio = Dio();
 
-  // Instance du service de stockage des évaluations
+  /// Service de stockage des évaluations psychologiques
+  /// Gère la persistance des sessions d'évaluation dans Strapi
   final AssessmentStorageService _storageService = AssessmentStorageService();
 
+  /// Service de stockage des conversations générales
+  /// Sauvegarde l'historique des échanges pour le suivi thérapeutique
   final ConversationStorageService _conversationStorage =
       ConversationStorageService();
 
+  /// Configuration de la résilience des requêtes
+  /// - maxRetries: Nombre maximum de tentatives en cas d'échec
+  /// - retryDelay: Délai entre les tentatives (augmente exponentiellement)
+  /// - timeout: Délai maximum d'attente pour une réponse
   static const int maxRetries = 3;
   static const Duration retryDelay = Duration(seconds: 2);
   static const Duration timeout = Duration(seconds: 30);
 
+  /// Structure de l'évaluation psychologique multilingue
+  /// Questionnaire standardisé en 5 étapes couvrant :
+  /// - État émotionnel actuel
+  /// - Qualité du sommeil
+  /// - Sources de stress
+  /// - Patterns de pensée
+  /// - Niveau d'énergie
+  ///
+  /// Format: Map<Langue, Liste<Question>>
+  /// Chaque question contient :
+  /// - question: Le texte de la question
+  /// - context: Le domaine psychologique évalué
   final Map<String, List<Map<String, String>>> _psychAssessment = {
     'fr': [
       {
@@ -84,7 +123,17 @@ class ChatService {
       ? dotenv.env['API_URL_ANDROID']!
       : dotenv.env['API_URL_IOS']!;
 
-  // Méthode pour formater les messages avant de les envoyer à l'API
+  /// Prépare les messages pour l'API Groq
+  /// Cette méthode est cruciale car elle :
+  /// 1. Formate les messages selon les spécifications de l'API
+  /// 2. Ajoute les instructions système appropriées
+  /// 3. Gère le contexte d'évaluation vs conversation normale
+  ///
+  /// @param messages Liste des messages de la conversation
+  /// @param isAssessment Mode évaluation psychologique activé
+  /// @param questionCount Numéro de la question actuelle (mode évaluation)
+  /// @param selectedLanguage Langue de l'interaction ('fr', 'en', 'ar')
+  /// @returns Liste de messages formatés pour l'API
   List<Map<String, String>> _prepareMessages(List<Message> messages,
       {bool isAssessment = false,
       int questionCount = 0,

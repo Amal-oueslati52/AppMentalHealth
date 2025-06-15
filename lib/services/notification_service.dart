@@ -1,11 +1,20 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+/// Service de gestion des notifications push
+/// Utilise Firebase Cloud Messaging (FCM) pour :
+/// - Gérer les notifications en premier plan et en arrière-plan
+/// - Gérer les permissions de notifications
+/// - Traiter les actions utilisateur sur les notifications
 class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
 
+  /// Initialise le service de notifications
+  /// - Demande les permissions nécessaires
+  /// - Récupère le token FCM
+  /// - Configure les handlers de messages
   Future<void> initialize() async {
     try {
-      // Request notification permissions
+      // Demande des permissions de notification à l'utilisateur
       await _firebaseMessaging.requestPermission(
         alert: true,
         badge: true,
@@ -26,18 +35,24 @@ class NotificationService {
     }
   }
 
+  /// Gestion des messages reçus lorsque l'application est au premier plan
+  /// Affiche les notifications et traite les données associées
+  /// @param message Le message FCM reçu
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    print('📬 Got a message in foreground!');
-    print('Message data: ${message.data}');
+    print('📬 Réception d\'un message en premier plan !');
+    print('Données du message : ${message.data}');
 
     if (message.notification != null) {
-      print('Message notification: ${message.notification!.title}');
-      print('Message notification: ${message.notification!.body}');
+      print('Titre de la notification : ${message.notification!.title}');
+      print('Contenu de la notification : ${message.notification!.body}');
     }
   }
 
+  /// Gestion des actions utilisateur sur les notifications
+  /// Appelé quand l'utilisateur tape sur une notification pour ouvrir l'app
+  /// @param message Le message FCM qui a déclenché l'ouverture
   Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
-    print('📱 Message opened app: ${message.data}');
+    print('📱 Ouverture de l\'app via notification : ${message.data}');
   }
 }
 

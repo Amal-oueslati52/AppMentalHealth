@@ -4,11 +4,18 @@ import 'dart:convert';
 import '../models/cabinet.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+/// Service de gestion des cabinets médicaux
+/// Permet de récupérer la liste des cabinets disponibles avec leurs informations
+/// (localisation, spécialités, etc.)
 class CabinetService {
+  // URL de base de l'API, différente selon la plateforme (Android/iOS)
   final String baseUrl = Platform.isAndroid
       ? dotenv.env['API_URL_ANDROID']!
       : dotenv.env['API_URL_IOS']!;
 
+  /// Récupère la liste complète des cabinets depuis l'API
+  /// Inclut toutes les informations associées (populate=*)
+  /// @returns Liste des cabinets avec leurs coordonnées géographiques
   Future<List<Cabinet>> fetchCabinets() async {
     try {
       print('🔍 Fetching all cabinets');
